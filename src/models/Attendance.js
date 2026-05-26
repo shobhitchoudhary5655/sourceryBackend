@@ -37,7 +37,8 @@ const Attendance = sequelize.define(
         'absent',
         'halfday',
         'leave',
-        'auto-punch-out'
+        'auto-punch-out',
+        'work-from-home'
       ),
       defaultValue: 'absent',
     },

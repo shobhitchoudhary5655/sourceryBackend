@@ -1,99 +1,96 @@
-const { Attendance, User, } = require('../models');
+const { Attendance, User } = require('../models');
 
+exports.getAttendance = async (req, res) => {
+  try {
 
-exports.getAttendance =
-    async (req, res) => {
-        try {
+    const attendance = await Attendance.findAll({
+      include: [
+        {
+          model: User,
+          attributes: [
+            'id',
+            'name',
+            'email',
+            'designation',
+          ],
+        },
+      ],
+      order: [['date', 'DESC']],
+    });
 
-            const attendance =
-                await Attendance.findAll({
-                    include: [
-                        {
-                            model: User,
-                            attributes: [
-                                'id',
-                                'name',
-                                'email',
-                                'designation',
-                            ],
-                        },
-                    ],
-                    order: [
-                        ['date', 'DESC'],
-                    ],
-                });
+    res.status(200).json({
+      success: true,
+      attendance,
+    });
 
-            res.status(200).json({
-                success: true,
-                attendance,
-            });
+  } catch (error) {
 
-        } catch (error) {
-
-            res.status(500).json({
-                success: false,
-                message: error.message,
-            });
-        }
-    };
-
-
-exports.punchIn = async (
-    req,
-    res
-) => {
-    try {
-
-        const userId = req.user.id;
-
-        const today = new Date()
-            .toISOString()
-            .split('T')[0];
-
-        const existingAttendance =
-            await Attendance.findOne({
-                where: {
-                    userId,
-                    date: today,
-                },
-            });
-
-        if (existingAttendance) {
-            return res.status(400).json({
-                success: false,
-                message:
-                    'Already Punched In Today',
-            });
-        }
-
-        const attendance =
-            await Attendance.create({
-                userId,
-                date: today,
-                checkIn: new Date(),
-                status: 'present',
-            });
-
-        res.status(201).json({
-            success: true,
-            message:
-                'Punch In Successful',
-            attendance,
-        });
-
-    } catch (error) {
-
-        res.status(500).json({
-            success: false,
-            message: error.message,
-        });
-    }
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
 };
 
-exports.punchOut = async (
-  req,
-  res
-) => {
+exports.punchIn = async (req, res) => {
+  try {
+
+    const userId = req.user.id;
+
+    const today = new Date()
+      .toISOString()
+      .split('T')[0];
+
+    const existingAttendance =
+      await Attendance.findOne({
+        where: {
+          userId,
+          date: today,
+        },
+      });
+
+    if (existingAttendance) {
+      return res.status(400).json({
+        success: false,
+        message: 'Already Punched In Today',
+      });
+    }
+
+    const currentTime = new Date();
+
+    const indianTime = new Date(
+      currentTime.toLocaleString(
+        'en-US',
+        {
+          timeZone: 'Asia/Kolkata',
+        }
+      )
+    );
+
+    const attendance =
+      await Attendance.create({
+        userId,
+        date: today,
+        checkIn: indianTime,
+        status: 'present',
+      });
+
+    res.status(201).json({
+      success: true,
+      message: 'Punch In Successful',
+      attendance,
+    });
+
+  } catch (error) {
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+exports.punchOut = async (req, res) => {
   try {
 
     const userId = req.user.id;
@@ -113,57 +110,56 @@ exports.punchOut = async (
     if (!attendance) {
       return res.status(400).json({
         success: false,
-        message:
-          'Please Punch In First',
+        message: 'Please Punch In First',
       });
     }
 
     if (attendance.checkOut) {
       return res.status(400).json({
         success: false,
-        message:
-          'Already Punched Out',
+        message: 'Already Punched Out',
       });
     }
 
-    const checkOutTime =
-      new Date();
+    const currentTime = new Date();
 
-    const workingHours =
+    const indianTime = new Date(
+      currentTime.toLocaleString(
+        'en-US',
+        {
+          timeZone: 'Asia/Kolkata',
+        }
+      )
+    );
+
+    const workingHours = (
       (
-        (checkOutTime -
-          new Date(
-            attendance.checkIn
-          )) /
-        (1000 * 60 * 60)
-      ).toFixed(2);
+        indianTime -
+        new Date(attendance.checkIn)
+      ) / (1000 * 60 * 60)
+    ).toFixed(2);
 
-    attendance.checkOut =
-      checkOutTime;
+    attendance.checkOut = indianTime;
 
-    attendance.workingHours =
-      workingHours;
+    attendance.workingHours = workingHours;
 
     const punchOutHour =
-      checkOutTime.getHours();
+      indianTime.getHours();
 
     if (punchOutHour < 14) {
 
-      attendance.status =
-        'halfday';
+      attendance.status = 'halfday';
 
     } else {
 
-      attendance.status =
-        'present';
+      attendance.status = 'present';
     }
 
     await attendance.save();
 
     res.status(200).json({
       success: true,
-      message:
-        'Punch Out Successful',
+      message: 'Punch Out Successful',
       attendance,
     });
 
@@ -176,30 +172,27 @@ exports.punchOut = async (
   }
 };
 
-exports.getMyAttendance =
-    async (req, res) => {
-        try {
+exports.getMyAttendance = async (req, res) => {
+  try {
 
-            const userId = req.user.id;
+    const userId = req.user.id;
 
-            const attendance =
-                await Attendance.findAll({
-                    where: { userId },
-                    order: [
-                        ['date', 'DESC'],
-                    ],
-                });
+    const attendance =
+      await Attendance.findAll({
+        where: { userId },
+        order: [['date', 'DESC']],
+      });
 
-            res.status(200).json({
-                success: true,
-                attendance,
-            });
+    res.status(200).json({
+      success: true,
+      attendance,
+    });
 
-        } catch (error) {
+  } catch (error) {
 
-            res.status(500).json({
-                success: false,
-                message: error.message,
-            });
-        }
-    };
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
