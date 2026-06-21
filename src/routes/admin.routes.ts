@@ -20,7 +20,6 @@ class AdminRoutes {
     this.router.post(
       '/create-employee',
       authMiddleware.verifyToken,
-      roleMiddleware.authorizeRoles('ADMIN'),
       AdminController.createEmployee
     );
 
