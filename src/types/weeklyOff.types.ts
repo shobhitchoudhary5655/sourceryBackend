@@ -1,0 +1,1 @@
+export const WEEKLY_OFF_DAYS = [0, 6];

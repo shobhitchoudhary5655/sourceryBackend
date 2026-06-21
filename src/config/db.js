@@ -1,39 +1,40 @@
-const { Sequelize } = require('sequelize');
+// const { Sequelize } = require('sequelize');
 
-const sequelize = new Sequelize(
-  process.env.DB_NAME,
-  process.env.DB_USER,
-  process.env.DB_PASSWORD,
-  {
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    dialect: 'mysql',
-    logging: false,
-    timezone: '+05:30',
+// const sequelize = new Sequelize(
+//   process.env.DB_NAME,
+//   process.env.DB_USER,
+//   process.env.DB_PASSWORD,
+//   {
+//     host: process.env.DB_HOST,
+//     port: process.env.DB_PORT,
+//     dialect: 'mysql',
+//     logging: false,
+//     timezone: '+05:30',
 
-    dialectOptions: {
-      ssl: {
-        require: true,
-        rejectUnauthorized: false,
-      },
-    },
-  }
-);
+//     dialectOptions: {
+//       ssl: {
+//         require: true,
+//         rejectUnauthorized: false,
+//       },
+//       useUTC: false,
+//     },
+//   }
+// );
 
-const connectDB = async () => {
-  try {
-    await sequelize.authenticate();
+// const connectDB = async () => {
+//   try {
+//     await sequelize.authenticate();
 
-    console.log('✅ MySQL Connected Successfully');
-  } catch (error) {
-    console.log('❌ Database Connection Error');
+//     console.log('✅ MySQL Connected Successfully');
+//   } catch (error) {
+//     console.log('❌ Database Connection Error');
 
-    console.log(error);
+//     console.log(error);
 
-    process.exit(1);
-  }
-};
+//     process.exit(1);
+//   }
+// };
 
-module.exports = sequelize;
+// module.exports = sequelize;
 
-module.exports.connectDB = connectDB;
+// module.exports.connectDB = connectDB;
