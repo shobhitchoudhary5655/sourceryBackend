@@ -2,9 +2,6 @@ import User from './User';
 import Role from './Role';
 import Attendance from './Attendance';
 import Holiday from './Holiday';
-// import WeeklyOff from './WeeklyOff';
-// import Leave from './Leave';
-// import WorkFromHome from './WorkFromHome';
 import Request from './Request';
 
 Role.hasMany(User, {

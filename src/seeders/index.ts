@@ -1,6 +1,5 @@
 import { RoleSeeder } from './roleSeeder';
 import { HolidaySeeder } from './holidaySeeder';
-import { WeeklyOffSeeder } from './weeklyOffSeeder';
 import { AdminSeeder } from './adminSeeder';
 
 class SeederRunner {
@@ -10,7 +9,6 @@ class SeederRunner {
             console.log('🌱 Running Seeders...');
             await RoleSeeder.seed();
             await HolidaySeeder.seed();
-            await WeeklyOffSeeder.seed();
             await AdminSeeder.seed();
             console.log('✅ All Seeders Completed');
             process.exit(0);
