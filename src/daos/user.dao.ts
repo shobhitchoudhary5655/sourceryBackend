@@ -1,5 +1,5 @@
 import { Op } from 'sequelize';
-import { User, Role, } from '../models';
+import { User, Role, Attendance } from '../models';
 import { UserCreationAttributes } from '../models/User';
 
 class UserDao {
@@ -47,6 +47,7 @@ class UserDao {
     const { search, designation, page, limit, } = filters;
     const pageNum = Number(page) || 1;
     const limitNum = Number(limit) || 10;
+    const today = new Date().toISOString().split('T')[0];
     const where: any = {
       roleId: {
         [Op.in]: roleIds,
@@ -71,6 +72,15 @@ class UserDao {
           model: Role,
           as: 'role',
           attributes: ['id', 'name'],
+        },
+        {
+          model: Attendance,
+          as: 'attendances',
+          required: false,
+          where: {
+            date: today,
+          },
+          attributes: ['id', 'date', 'status', 'checkIn', 'checkOut'],
         },
       ],
       limit: limitNum,
