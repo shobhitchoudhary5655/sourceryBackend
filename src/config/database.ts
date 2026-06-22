@@ -9,6 +9,9 @@ const sequelize = new Sequelize(
         port: Number(process.env.DB_PORT),
         dialect: 'mysql',
         logging: false,
+
+        timezone: '+00:00',
+
         dialectOptions: {
             ssl: {
                 require: true,
@@ -21,6 +24,11 @@ const sequelize = new Sequelize(
 export const connectDB = async (): Promise<void> => {
     try {
         await sequelize.authenticate();
+
+        await sequelize.query(`
+      SET time_zone = '+00:00'
+    `);
+
         console.log('✅ MySQL Connected Successfully');
     } catch (error) {
         console.error('❌ Database Connection Error');
