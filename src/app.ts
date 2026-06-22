@@ -37,8 +37,8 @@ import routes from './routes';
 import sequelize, { connectDB, } from './config/database';
 // import autoPunchOutCron from './crons/autoPunchOutCron';
 // import attendanceStatusCron from './crons/attendanceStatusCron';
-import { AttendanceStatusCron, } from './crons/AttendanceStatusCron';
-import { AutoPunchOutCron } from './crons/AutoPunchOutCron';
+// import { AttendanceStatusCron, } from './crons/AttendanceStatusCron';
+// import { AutoPunchOutCron } from './crons/AutoPunchOutCron';
 
 // dotenv.config();
 
@@ -51,7 +51,7 @@ class App {
     this.initializeRoutes();
     this.initialize404();
     this.initializeDatabase();
-    this.initializeCrons();
+    // this.initializeCrons();
   }
 
   private initializeMiddlewares(): void {
@@ -84,13 +84,13 @@ class App {
     }
   }
 
-  private initializeCrons(): void {
-    const attendanceCron = new AttendanceStatusCron();
-    const punchOutCron = new AutoPunchOutCron();
-    attendanceCron.start();
-    punchOutCron.start()
-    console.log('✅ Cron Jobs Started');
-  }
+  // private initializeCrons(): void {
+  //   const attendanceCron = new AttendanceStatusCron();
+  //   const punchOutCron = new AutoPunchOutCron();
+  //   attendanceCron.start();
+  //   punchOutCron.start()
+  //   console.log('✅ Cron Jobs Started');
+  // }
 
   private initialize404(): void {
     this.app.use((req: Request, res: Response) => {
