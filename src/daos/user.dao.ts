@@ -1,6 +1,7 @@
 import { Op } from 'sequelize';
-import { User, Role, } from '../models';
+import { User, Role, Attendance } from '../models';
 import { UserCreationAttributes } from '../models/User';
+import { getTodayDate } from '../utils/dateHelper';
 
 class UserDao {
 
@@ -47,6 +48,7 @@ class UserDao {
     const { search, designation, page, limit, } = filters;
     const pageNum = Number(page) || 1;
     const limitNum = Number(limit) || 10;
+    const today = getTodayDate();
     const where: any = {
       roleId: {
         [Op.in]: roleIds,
@@ -71,6 +73,15 @@ class UserDao {
           model: Role,
           as: 'role',
           attributes: ['id', 'name'],
+        },
+        {
+          model: Attendance,
+          as: 'attendances',
+          required: false,
+          where: {
+            date: today,
+          },
+          attributes: ['id', 'date', 'status', 'checkIn', 'checkOut', 'workingHours',],
         },
       ],
       limit: limitNum,
