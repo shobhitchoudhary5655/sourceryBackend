@@ -52,7 +52,7 @@ class SalaryService {
             }
 
             await salaryDAO.createSalary({
-                userId: employee.id,
+                user_id: employee.id,
                 month,
                 year,
                 salary: employee.salary,
