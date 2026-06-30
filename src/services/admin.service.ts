@@ -7,6 +7,7 @@ import roleDAO from '../daos/role.dao';
 import attendanceDAO from '../daos/attendance.dao';
 import { formatDate } from '../utils/dateHelper';
 import { getWeeklyOffDates } from '../utils/weeklyOff.helper';
+import { AttendanceStatus } from '../types/attendance.types';
 
 class AdminService {
 
@@ -72,19 +73,12 @@ class AdminService {
     };
   };
 
-  // ✅ ATTENDANCE
-  // public getEmployeeAttendance = async (employeeId: string) => {
-  //   const attendance = await attendanceDAO.getEmployeeAttendance(employeeId);
-  //   return { success: true, attendance };
-  // };
-
   public getEmployeeAttendance = async ( employeeId: string) => {
     return attendanceDAO.getEmployeeAttendance(
       employeeId
     );
   };
 
-  // ✅ ATTENDANCE STATUS
   public getAttendanceStatus = async (employeeId: string, query: any) => {
     const { month, year } = query;
     const startDate = new Date(year, month - 1, 1);
@@ -93,10 +87,11 @@ class AdminService {
     const attendance = await attendanceDAO.getAttendanceStatus(employeeId, startDate, endDate);
     let present = 0, absent = 0, leave = 0, wfh = 0;
     attendance.forEach((item: any) => {
-      if (item.status === 'present') present++;
-      if (item.status === 'absent') absent++;
-      if (item.status === 'leave') leave++;
-      if (item.status === 'wfh') wfh++;
+      if (item.status === AttendanceStatus.PRESENT) present++;
+      if (item.status === AttendanceStatus.ABSENT) absent++;
+      if (item.status === AttendanceStatus.LEAVE) leave++;
+      if (item.status === AttendanceStatus.AUTO_PUNCH_OUT) present++;
+      if (item.status === AttendanceStatus.WORK_FROM_HOME) present++;
     });
 
     const totalDays = new Date(year, month, 0).getDate();
@@ -109,23 +104,6 @@ class AdminService {
       formatDate(new Date(h.date))
     );
 
-    // const weeklyOffs = await WeeklyOff.findAll();
-    // const weeklyOffDays = weeklyOffs.map((w: any) => w.dayName);
-
-    // const weeklyOffDates: string[] = [];
-
-    // for (let d = 1; d <= totalDays; d++) {
-    //   const date = new Date(year, month - 1, d);
-
-    //   const dayName = date.toLocaleDateString('en-US', {
-    //     timeZone: 'Asia/Kolkata',
-    //     weekday: 'long',
-    //   });
-
-    //   if (weeklyOffDays.includes(dayName)) {
-    //     weeklyOffDates.push(formatDate(date));
-    //   }
-    // }
     const monthNum = Number(month);
     const yearNum = Number(year);
     const weeklyOffDates = getWeeklyOffDates(   monthNum,   yearNum );
