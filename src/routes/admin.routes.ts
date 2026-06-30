@@ -7,6 +7,7 @@ import DashboardController from '../controllers/dashboard.controller';
 import LeaveController from '../controllers/leave.controller';
 import RoleController from '../controllers/role.controller';
 import HolidayController from '../controllers/holiday.controller';
+import SalaryController from '../controllers/salary.controller';
 
 class AdminRoutes {
   public router: Router;
@@ -111,6 +112,30 @@ class AdminRoutes {
       '/deleteHoliday/:id',
       authMiddleware.verifyToken,
       HolidayController.deleteHoliday
+    );
+    
+    this.router.get(
+      '/salary',
+      authMiddleware.verifyToken,
+      SalaryController.getSalaryList
+    );
+
+    this.router.post(
+      '/salary',
+      authMiddleware.verifyToken,
+      SalaryController.createSalary
+    );
+
+    this.router.patch(
+      '/salary/:id/pay',
+      authMiddleware.verifyToken,
+      SalaryController.markSalaryPaid
+    );
+
+    this.router.get(
+      '/salary/:id',
+      authMiddleware.verifyToken,
+      SalaryController.getSalaryDetails
     );
   }
 }

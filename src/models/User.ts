@@ -1,6 +1,6 @@
-import {DataTypes,Model,Optional,} from 'sequelize';
+import { DataTypes, Model, Optional, } from 'sequelize';
 import sequelize from '../config/database';
-import {IUser,} from '../interfaces/user.interface';
+import { IUser, } from '../interfaces/user.interface';
 
 export interface UserCreationAttributes
   extends Optional<
@@ -15,15 +15,15 @@ export interface UserCreationAttributes
     | 'workLocation'
     | 'employeeType'
     | 'profileImage'
-  > {}
+    | 'salary'
+  > { }
 
 class User
   extends Model<
     IUser,
     UserCreationAttributes
   >
-  implements IUser
-{
+  implements IUser {
   declare id: number;
 
   declare employeeId?: string;
@@ -57,6 +57,8 @@ class User
     | 'Intern';
 
   declare profileImage?: string;
+
+  declare salary?: number | null;
 
   declare readonly createdAt: Date;
 
@@ -144,6 +146,12 @@ User.init(
     profileImage: {
       type: DataTypes.TEXT,
       allowNull: true,
+    },
+
+    salary: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      defaultValue: null,
     },
   },
   {

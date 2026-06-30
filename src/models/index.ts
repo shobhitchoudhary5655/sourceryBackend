@@ -3,6 +3,7 @@ import Role from './Role';
 import Attendance from './Attendance';
 import Holiday from './Holiday';
 import Request from './Request';
+import SalaryPayment from './Salary';
 
 Role.hasMany(User, {
   foreignKey: 'roleId',
@@ -34,25 +35,25 @@ Request.belongsTo(User, {
   as: 'user',
 });
 
-// User.hasMany(Leave, {
-//   foreignKey: 'userId',
-//   as: 'leaves',
-// });
+User.hasMany(SalaryPayment, {
+  foreignKey: 'userId',
+  as: 'salaryPayments',
+});
 
-// Leave.belongsTo(User, {
-//   foreignKey: 'userId',
-//   as: 'user',
-// });
+SalaryPayment.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'user',
+});
 
-// User.hasMany(WorkFromHome, {
-//   foreignKey: 'userId',
-//   as: 'workFromHomes',
-// });
+User.hasMany(SalaryPayment, {
+  foreignKey: 'paidBy',
+  as: 'paidSalaryRecords',
+});
 
-// WorkFromHome.belongsTo(User, {
-//   foreignKey: 'userId',
-//   as: 'user',
-// });
+SalaryPayment.belongsTo(User, {
+  foreignKey: 'paidBy',
+  as: 'paidByUser',
+});
 
 export {
   User,
@@ -60,64 +61,5 @@ export {
   Attendance,
   Holiday,
   Request,
+  SalaryPayment,
 };
-
-// const User = require('./User');
-// const Role = require('./Role');
-// const Attendance = require('./Attendance');
-// const WeeklyOff = require('./WeeklyOff');
-// const Holiday = require('./Holiday')
-// const Leave = require('./Leave')
-// const WorkFromHome = require('./WorkFromHome')
-
-// Role.hasMany(User, {
-//   foreignKey: 'roleId',
-// });
-
-// User.belongsTo(Role, {
-//   foreignKey: 'roleId',
-// });
-
-// User.hasMany(Attendance, {
-//   foreignKey: 'userId',
-// });
-
-// Attendance.belongsTo(User, {
-//   foreignKey: 'userId',
-// });
-
-// User.hasMany(Leave, {
-//   foreignKey: 'userId',
-// })
-
-// Leave.belongsTo(User, {
-//   foreignKey: 'userId'
-// })
-
-// User.hasMany(WorkFromHome, {
-//   foreignKey: 'userId'
-// })
-
-// WorkFromHome.belongsTo(User, {
-//   foreignKey: 'userId'
-// })
-
-// // module.exports = {
-// //   User,
-// //   Role,
-// //   Attendance,
-// //   Holiday,
-// //   WeeklyOff,
-// //   Leave,
-// //   WorkFromHome,
-// // };
-
-// export {
-//   User,
-//   Role,
-//   Attendance,
-//   Holiday,
-//   WeeklyOff,
-//   Leave,
-//   WorkFromHome,
-// };
