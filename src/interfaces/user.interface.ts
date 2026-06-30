@@ -13,4 +13,5 @@ export interface IUser {
   workLocation?: string;
   employeeType?: 'Permanent' | 'Contract' | 'Intern';
   profileImage?: string;
+  salary?: number | null;
 }
