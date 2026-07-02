@@ -16,6 +16,7 @@ export interface UserCreationAttributes
     | 'employeeType'
     | 'profileImage'
     | 'salary'
+    | 'status'
     | 'clBalance'
     | 'slBalance'
   > { }
@@ -61,6 +62,8 @@ class User
   declare profileImage?: string;
 
   declare salary?: number | null;
+
+  declare status: "Active" | "Inactive";
 
   declare clBalance?: number | null;
 
@@ -158,6 +161,12 @@ User.init(
       type: DataTypes.DECIMAL(10, 2),
       allowNull: true,
       defaultValue: null,
+    },
+
+    status: {
+      type: DataTypes.ENUM("Active", "Inactive"),
+      allowNull: false,
+      defaultValue: "Active",
     },
 
     clBalance: {
