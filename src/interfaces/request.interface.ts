@@ -19,6 +19,7 @@ export interface IRequest {
     approvedBy?: number;
     approvedAt?: Date;
     rejectionReason?: string;
+    lopDays?: number;
     createdAt?: Date;
     updatedAt?: Date;
 }

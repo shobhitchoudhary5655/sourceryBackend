@@ -10,6 +10,9 @@ export interface SalaryPaymentCreationAttributes
         | 'paidBy'
         | 'remarks'
         | 'status'
+        | 'lopDays'
+        | 'wfhDeductionDays'
+        | 'deductionAmount'
     > { }
 
 class SalaryPayment
@@ -35,6 +38,14 @@ class SalaryPayment
     declare paidBy?: number | null;
 
     declare remarks?: string | null;
+
+    declare baseSalary: number;
+
+    declare lopDays: number;
+
+    declare wfhDeductionDays: number;
+
+    declare deductionAmount: number;
 
     declare readonly createdAt: Date;
 
@@ -95,6 +106,30 @@ SalaryPayment.init(
             type: DataTypes.TEXT,
             allowNull: true,
             defaultValue: null,
+        },
+
+        baseSalary: {
+            type: DataTypes.DECIMAL(10, 2),
+            allowNull: false,
+            defaultValue: 0,
+        },
+
+        lopDays: {
+            type: DataTypes.DECIMAL(4, 1),
+            allowNull: false,
+            defaultValue: 0,
+        },
+
+        wfhDeductionDays: {
+            type: DataTypes.DECIMAL(4, 1),
+            allowNull: false,
+            defaultValue: 0,
+        },
+
+        deductionAmount: {
+            type: DataTypes.DECIMAL(10, 2),
+            allowNull: false,
+            defaultValue: 0,
         },
     },
     {
