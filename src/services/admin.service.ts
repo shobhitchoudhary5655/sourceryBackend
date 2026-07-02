@@ -73,7 +73,7 @@ class AdminService {
     };
   };
 
-  public getEmployeeAttendance = async ( employeeId: string) => {
+  public getEmployeeAttendance = async (employeeId: string) => {
     return attendanceDAO.getEmployeeAttendance(
       employeeId
     );
@@ -83,7 +83,7 @@ class AdminService {
     const { month, year } = query;
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0);
-    
+
     const attendance = await attendanceDAO.getAttendanceStatus(employeeId, startDate, endDate);
     let present = 0, absent = 0, leave = 0, wfh = 0;
     attendance.forEach((item: any) => {
@@ -106,7 +106,7 @@ class AdminService {
 
     const monthNum = Number(month);
     const yearNum = Number(year);
-    const weeklyOffDates = getWeeklyOffDates(   monthNum,   yearNum );
+    const weeklyOffDates = getWeeklyOffDates(monthNum, yearNum);
     const weeklyOff = weeklyOffDates.length;
     const holidayCount = holidayDates.length;
     const workingDays = totalDays - weeklyOff - holidayCount;
@@ -165,14 +165,20 @@ class AdminService {
     const employee = await User.findByPk(id);
 
     if (!employee) {
-      return { success: false, message: 'Employee not found' };
+      return {
+        success: false,
+        message: "Employee not found",
+      };
     }
 
-    await employee.destroy();
+    const newStatus = employee.status === "Active" ? "Inactive" : "Active";
+
+    await employee.update({ status: newStatus, });
 
     return {
       success: true,
-      message: 'Employee deleted successfully',
+      message: `Employee ${newStatus.toLowerCase()} successfully`,
+      status: newStatus,
     };
   };
 }
