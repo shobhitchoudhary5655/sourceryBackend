@@ -16,6 +16,8 @@ export interface UserCreationAttributes
     | 'employeeType'
     | 'profileImage'
     | 'salary'
+    | 'clBalance'
+    | 'slBalance'
   > { }
 
 class User
@@ -59,6 +61,10 @@ class User
   declare profileImage?: string;
 
   declare salary?: number | null;
+
+  declare clBalance?: number | null;
+
+  declare slBalance?: number | null;
 
   declare readonly createdAt: Date;
 
@@ -153,6 +159,18 @@ User.init(
       allowNull: true,
       defaultValue: null,
     },
+
+    clBalance: {
+      type: DataTypes.DECIMAL(4, 1),
+      allowNull: false,
+      defaultValue: 0,
+    },
+
+    slBalance: {
+      type: DataTypes.DECIMAL(4, 1),
+      allowNull: false,
+      defaultValue: 0,
+    },
   },
   {
     sequelize,
@@ -163,99 +181,3 @@ User.init(
 );
 
 export default User;
-
-// const { DataTypes } = require('sequelize');
-
-// const sequelize = require('../config/db');
-
-// const User = sequelize.define(
-//   'User',
-//   {
-//     id: {
-//       type: DataTypes.INTEGER,
-//       autoIncrement: true,
-//       primaryKey: true,
-//     },
-
-//     employeeId: {
-//       type: DataTypes.STRING,
-//       unique: true,
-//       allowNull: true,
-//     },
-
-//     name: {
-//       type: DataTypes.STRING,
-//       allowNull: false,
-//     },
-
-//     email: {
-//       type: DataTypes.STRING,
-//       allowNull: false,
-//       unique: true,
-//     },
-
-//     password: {
-//       type: DataTypes.STRING,
-//       allowNull: false,
-//     },
-
-//     roleId: {
-//       type: DataTypes.INTEGER,
-//       allowNull: false,
-//     },
-
-//     phone: {
-//       type: DataTypes.STRING,
-//       allowNull: true,
-//     },
-
-//     gender: {
-//       type: DataTypes.ENUM(
-//         'Male',
-//         'Female',
-//         'Other'
-//       ),
-//       allowNull: true,
-//     },
-
-//     dateOfBirth: {
-//       type: DataTypes.DATEONLY,
-//       allowNull: true,
-//     },
-
-//     designation: {
-//       type: DataTypes.STRING,
-//       allowNull: true,
-//     },
-
-//     joiningDate: {
-//       type: DataTypes.DATEONLY,
-//       allowNull: true,
-//     },
-
-//     workLocation: {
-//       type: DataTypes.STRING,
-//       allowNull: true,
-//     },
-
-//     employeeType: {
-//       type: DataTypes.ENUM(
-//         'Permanent',
-//         'Contract',
-//         'Intern'
-//       ),
-//       allowNull: true,
-//     },
-
-//     profileImage: {
-//       type: DataTypes.TEXT,
-//       allowNull: true,
-//     },
-//   },
-//   {
-//     tableName: 'users',
-//     timestamps: true,
-//   }
-// );
-
-// module.exports = User;

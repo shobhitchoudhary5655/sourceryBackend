@@ -11,6 +11,7 @@ interface RequestCreationAttributes
         | 'approvedAt'
         | 'rejectionReason'
         | 'leaveType'
+        | 'lopDays'
     > { }
 
 class Request
@@ -40,6 +41,7 @@ class Request
     declare approvedBy?: number;
     declare approvedAt?: Date;
     declare rejectionReason?: string;
+    declare lopDays?: number;
     declare readonly createdAt: Date;
     declare readonly updatedAt: Date;
 }
@@ -112,6 +114,12 @@ Request.init(
         rejectionReason: {
             type: DataTypes.TEXT,
             allowNull: true,
+        },
+
+        lopDays: {
+            type: DataTypes.DECIMAL(4, 1),
+            allowNull: false,
+            defaultValue: 0,
         },
     },
     {

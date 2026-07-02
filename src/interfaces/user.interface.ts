@@ -14,4 +14,6 @@ export interface IUser {
   employeeType?: 'Permanent' | 'Contract' | 'Intern';
   profileImage?: string;
   salary?: number | null;
+  clBalance?: number | null;
+  slBalance?: number | null;
 }

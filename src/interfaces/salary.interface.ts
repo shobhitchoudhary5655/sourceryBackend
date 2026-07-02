@@ -8,6 +8,10 @@ export interface ISalaryPayment {
     paidDate?: Date | null;
     paidBy?: number | null;
     remarks?: string | null;
+    baseSalary?: number | null;
+    lopDays?: number | null;
+    wfhDeductionDays?: number | null;
+    deductionAmount?: number | null;
     createdAt?: Date;
     updatedAt?: Date;
 }

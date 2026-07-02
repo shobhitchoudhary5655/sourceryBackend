@@ -2,38 +2,9 @@ import { Op } from 'sequelize';
 import { User, Attendance, Holiday, Request } from '../models';
 import { formatDate } from '../utils/dateHelper';
 import { ApplyRequestDTO, UpdateLeaveStatusDTO } from '../dtos/leave.dto';
-import { isWeeklyOff, } from '../utils/weeklyOff.helper';
+import { getWorkingDaysBetween, isWeeklyOff, } from '../utils/weeklyOff.helper';
 
 class LeaveService {
-
-    // public applyLeave = async (userId: number, data: ApplyLeaveDTO) => {
-    //     // const leave = await Leave.create({
-    //     //     userId,
-    //     //     ...data,
-    //     // } as any);
-    //     const leave = await Request.create({
-    //         userId,
-    //         requestType: 'leave',
-    //         leaveType,
-    //         startDate,
-    //         endDate,
-    //         reason,
-    //     });
-
-    //     const wfh = await Request.create({
-    //         userId,
-    //         requestType: 'wfh',
-    //         startDate,
-    //         endDate,
-    //         reason,
-    //     });
-
-    //     return {
-    //         success: true,
-    //         message: 'Leave request submitted successfully',
-    //         leave,
-    //     };
-    // };
 
     public applyRequest = async (
         userId: number,
@@ -79,31 +50,11 @@ class LeaveService {
         const limitNum = Number(limit) || 10;
         const offset = (pageNum - 1) * limitNum;
 
-        // const offset = (page - 1) * limit;
-
         const where: any = {};
         if (status && status !== 'all') {
             where.status = status;
         }
 
-        // const { count, rows } = await Leave.findAndCountAll({
-        //     where,
-        //     include: [
-        //         {
-        //             model: User,
-        //              as : 'user',
-        //             attributes: ['id', 'name', 'email'],
-        //             where: search
-        //                 ? {
-        //                     name: { [Op.like]: `%${search}%` },
-        //                 }
-        //                 : undefined,
-        //         },
-        //     ],
-        //     order: [['createdAt', 'DESC']],
-        //     limit: Number(limit),
-        //     offset: Number(offset),
-        // });
 
         const { count, rows } = await Request.findAndCountAll({
             where,
@@ -133,139 +84,7 @@ class LeaveService {
         };
     };
 
-    // public updateLeaveStatus = async (id: number, data: UpdateLeaveStatusDTO) => {
-    //     if (!['approved', 'rejected'].includes(data.status)) {
-    //         return {
-    //             success: false,
-    //             message: 'Invalid status',
-    //         };
-    //     }
-
-    //     const leave = await Request.findByPk(id);
-
-    //     if (!leave) {
-    //         return {
-    //             success: false,
-    //             message: 'Leave not found',
-    //         };
-    //     }
-
-    //     if (leave.status === 'approved') {
-    //         return {
-    //             success: false,
-    //             message: 'Leave already approved',
-    //         };
-    //     }
-
-    //     leave.status = data.status;
-    //     await leave.save();
-
-    //     if (data.status === 'approved') {
-    //         let currentDate = new Date(leave.startDate);
-    //         const endDate = new Date(leave.endDate);
-
-    //         // while (currentDate <= endDate) {
-
-    //         //     const dayName = currentDate.toLocaleDateString('en-US', {
-    //         //         weekday: 'long',
-    //         //         timeZone: 'Asia/Kolkata',
-    //         //     });
-
-    //         //     if (isWeeklyOff(currentDate)) {
-    //         //         currentDate.setDate(
-    //         //             currentDate.getDate() + 1
-    //         //         );
-
-    //         //         continue;
-    //         //     }
-
-    //         //     const formattedDate = formatDate(currentDate);
-
-    //         //     const holiday = await Holiday.findOne({
-    //         //         where: { date: formattedDate },
-    //         //     });
-
-    //         //     if (holiday) {
-    //         //         currentDate.setDate(currentDate.getDate() + 1);
-    //         //         continue;
-    //         //     }
-
-    //         //     const attendance = await Attendance.findOne({
-    //         //         where: {
-    //         //             userId: leave.userId,
-    //         //             date: formattedDate,
-    //         //         },
-    //         //     });
-
-    //         //     if (!attendance) {
-    //         //         await Attendance.create({
-    //         //             userId: leave.userId,
-    //         //             date: formattedDate,
-    //         //             status: 'leave',
-    //         //         });
-    //         //     } else {
-    //         //         attendance.status = 'leave';
-    //         //         await attendance.save();
-    //         //     }
-
-    //         //     currentDate.setDate(currentDate.getDate() + 1);
-    //         // }
-    //         while (currentDate <= endDate) {
-
-    //             if (isWeeklyOff(currentDate)) {
-    //                 currentDate.setDate(
-    //                     currentDate.getDate() + 1
-    //                 );
-    //                 continue;
-    //             }
-
-    //             const formattedDate = formatDate(currentDate);
-
-    //             const holiday = await Holiday.findOne({
-    //                 where: {
-    //                     date: formattedDate,
-    //                 },
-    //             });
-
-    //             if (holiday) {
-    //                 currentDate.setDate(
-    //                     currentDate.getDate() + 1
-    //                 );
-    //                 continue;
-    //             }
-
-    //             const attendance = await Attendance.findOne({
-    //                 where: {
-    //                     userId: leave.userId,
-    //                     date: formattedDate,
-    //                 },
-    //             });
-
-    //             if (!attendance) {
-    //                 await Attendance.create({
-    //                     userId: leave.userId,
-    //                     date: formattedDate,
-    //                     status: 'leave',
-    //                 });
-    //             } else if (attendance.status === 'absent') {
-    //                 attendance.status = 'leave';
-    //                 await attendance.save();
-    //             }
-
-    //             currentDate.setDate(
-    //                 currentDate.getDate() + 1
-    //             );
-    //         }
-    //     }
-
-    //     return {
-    //         success: true,
-    //         message: `Leave ${data.status} successfully`,
-    //         leave,
-    //     };
-    // };
-
-    public updateLeaveStatus = async (  id: number,  data: UpdateLeaveStatusDTO ) => {
+    public updateLeaveStatus = async (id: number, data: UpdateLeaveStatusDTO) => {
         if (!['approved', 'rejected'].includes(data.status)) {
             return {
                 success: false,
@@ -289,63 +108,103 @@ class LeaveService {
             };
         }
 
-        request.status = data.status;
-        await request.save();
+        // Reject Request
+        if (data.status === 'rejected') {
+            request.status = 'rejected';
+            await request.save();
+
+            return {
+                success: true,
+                message: 'Request rejected successfully',
+                request,
+            };
+        }
 
         // WFH Request
         if (request.requestType === 'wfh') {
+
+            request.status = 'approved';
+            await request.save();
+
             return {
                 success: true,
-                message: `WFH ${data.status} successfully`,
+                message: 'WFH approved successfully',
                 request,
             };
         }
 
         // Leave Request
-        if (
-            request.requestType === 'leave' &&
-            data.status === 'approved'
-        ) {
+        if (request.requestType === 'leave') {
 
-            let currentDate =
-                new Date(request.startDate);
+            const user = await User.findByPk(request.userId);
 
-            const endDate =
-                new Date(request.endDate);
+            if (!user) {
+                return {
+                    success: false,
+                    message: 'User not found',
+                };
+            }
+
+            let currentDate = new Date(request.startDate);
+            const endDate = new Date(request.endDate);
+
+            const leaveDays = await getWorkingDaysBetween(
+                new Date(request.startDate),
+                new Date(request.endDate)
+            );
+
+            if (request.leaveType === 'Casual') {
+                const availableCL = Number(user.clBalance);
+                if (availableCL >= leaveDays) {
+                    user.clBalance = availableCL - leaveDays;
+                    request.lopDays = 0;
+                } else {
+                    request.lopDays = leaveDays - availableCL;
+                    user.clBalance = 0;
+                }
+
+            } else if (request.leaveType === 'Sick') {
+                const availableSL = Number(user.slBalance);
+                if (availableSL >= leaveDays) {
+                    user.slBalance = availableSL - leaveDays;
+                    request.lopDays = 0;
+                } else {
+                    request.lopDays = leaveDays - availableSL;
+                    user.slBalance = 0;
+                }
+            }
+
+            await user.save();
+            await request.save();
+
+            currentDate = new Date(request.startDate);
 
             while (currentDate <= endDate) {
 
                 if (isWeeklyOff(currentDate)) {
-                    currentDate.setDate(
-                        currentDate.getDate() + 1
-                    );
+                    currentDate.setDate(currentDate.getDate() + 1);
                     continue;
                 }
 
-                const formattedDate =
-                    formatDate(currentDate);
+                const formattedDate = formatDate(currentDate);
 
-                const holiday =
-                    await Holiday.findOne({
-                        where: {
-                            date: formattedDate,
-                        },
-                    });
+                const holiday = await Holiday.findOne({
+                    where: {
+                        date: formattedDate,
+                    },
+                });
 
                 if (holiday) {
-                    currentDate.setDate(
-                        currentDate.getDate() + 1
-                    );
+                    currentDate.setDate(currentDate.getDate() + 1);
                     continue;
                 }
 
-                const attendance =
-                    await Attendance.findOne({
-                        where: {
-                            userId: request.userId,
-                            date: formattedDate,
-                        },
-                    });
+                const attendance = await Attendance.findOne({
+                    where: {
+                        userId: request.userId,
+                        date: formattedDate,
+                    },
+                });
 
                 if (!attendance) {
 
@@ -355,18 +214,19 @@ class LeaveService {
                         status: 'leave',
                     });
 
-                } else if (
-                    attendance.status === 'absent'
-                ) {
+                } else if (attendance.status === 'absent') {
 
                     attendance.status = 'leave';
                     await attendance.save();
+
                 }
 
-                currentDate.setDate(
-                    currentDate.getDate() + 1
-                );
+                currentDate.setDate(currentDate.getDate() + 1);
             }
+
+            // Finally Approve Request
+            request.status = 'approved';
+            await request.save();
         }
 
         return {
