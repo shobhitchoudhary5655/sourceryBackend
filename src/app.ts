@@ -5,6 +5,7 @@ import sequelize, { connectDB, } from './config/database';
 import { AttendanceStatusCron, } from './crons/AttendanceStatusCron';
 import { AutoPunchOutCron } from './crons/AutoPunchOutCron';
 import { LeaveBalanceCron } from './crons/UpdateLeaveBalance';
+import { GraceBalanceResetCron } from './crons/GraceBalanceCron';
 
 class App {
   public app: Application;
@@ -51,10 +52,12 @@ class App {
   private initializeCrons(): void {
     const attendanceCron = new AttendanceStatusCron();
     const punchOutCron = new AutoPunchOutCron();
-    const leaveBalanceCron = new LeaveBalanceCron()
+    const leaveBalanceCron = new LeaveBalanceCron();
+    const graceBalanceResetCron = new GraceBalanceResetCron();
     attendanceCron.start();
-    punchOutCron.start()
-    leaveBalanceCron.start()
+    punchOutCron.start();
+    leaveBalanceCron.start();
+    graceBalanceResetCron.start();
     console.log('✅ Cron Jobs Started');
   }
 

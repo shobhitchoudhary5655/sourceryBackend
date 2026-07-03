@@ -164,156 +164,161 @@ class AttendanceService {
         });
 
         if (!attendance) {
-            return { success: false, message: 'Please Punch In First' };
+            return {
+                success: false,
+                message: "Please Punch In First",
+            };
         }
 
         if (attendance.checkOut) {
-            return { success: false, message: 'Already Punched Out' };
+            return {
+                success: false,
+                message: "Already Punched Out",
+            };
+        }
+
+        const user = await User.findByPk(userId);
+
+        if (!user) {
+            return {
+                success: false,
+                message: "User not found",
+            };
         }
 
         const now = new Date();
 
-        const workingHours =
-            (now.getTime() - new Date((attendance as any).checkIn).getTime()) /
-            (1000 * 60 * 60);
+        // Working minutes
+        const workingMinutes = Math.floor((now.getTime() - attendance.checkIn!.getTime()) / (1000 * 60));
+
+        // Working hours (for display)
+        const workingHours = Number((workingMinutes / 60).toFixed(2));
 
         attendance.checkOut = now;
-        attendance.workingHours = Number(workingHours.toFixed(2));
+        attendance.workingHours = workingHours;
 
-        const hour = Number(
-            now.toLocaleString('en-US', {
-                timeZone: 'Asia/Kolkata',
-                hour: '2-digit',
-                hour12: false,
-            })
-        );
+        const REQUIRED_MINUTES = 8 * 60;
 
-        attendance.status = hour < 14 ? 'halfday' : 'present';
+        // Minutes employee is short
+        const shortage = Math.max(0, REQUIRED_MINUTES - workingMinutes);
+
+        if (shortage === 0) {
+            attendance.status = "present";
+        } else {
+            if (user.graceBalance >= shortage) {
+                user.graceBalance -= shortage;
+                attendance.status = "present";
+
+                await user.save();
+            } else {
+                attendance.status = "halfday";
+            }
+        }
 
         await attendance.save();
 
         return {
             success: true,
-            message: 'Punch Out Successful',
+            message: "Punch Out Successful",
             attendance,
+            graceBalance: user.graceBalance,
         };
     };
 
-    // public getMyAttendance = async (userId: number, month: number, year: number) => {
-    //     const startDate = new Date(year, month - 1, 1);
-    //     const endDate = new Date(year, month, 0);
+    // public punchOut = async (userId: number) => {
+    //     const today = getTodayDate();
 
-    //     const attendance = await Attendance.findAll({
-    //         where: {
-    //             userId,
-    //             date: {
-    //                 [Op.between]: [formatDate(startDate), formatDate(endDate)],
-    //             },
-    //         },
+    //     const attendance = await Attendance.findOne({
+    //         where: { userId, date: today },
     //     });
 
-    //     const holidays = await Holiday.findAll({
-    //         where: {
-    //             date: {
-    //                 [Op.between]: [formatDate(startDate), formatDate(endDate)],
-    //             },
-    //         },
-    //     });
+    //     if (!attendance) {
+    //         return { success: false, message: 'Please Punch In First' };
+    //     }
 
-    //     // const weeklyOffs = await WeeklyOff.findAll();
-    //     // const weeklyOffDays = weeklyOffs.map(w => w.dayName);
+    //     if (attendance.checkOut) {
+    //         return { success: false, message: 'Already Punched Out' };
+    //     }
 
-    //     // const weeklyOffDates: string[] = [];
+    //     const now = new Date();
 
-    //     // for (let d = 1; d <= endDate.getDate(); d++) {
-    //     //     const date = new Date(year, month - 1, d);
+    //     const workingHours =
+    //         (now.getTime() - new Date((attendance as any).checkIn).getTime()) /
+    //         (1000 * 60 * 60);
 
-    //     //     const dayName = date.toLocaleDateString('en-US', {
-    //     //         weekday: 'long',
-    //     //         timeZone: 'Asia/Kolkata',
-    //     //     });
+    //     attendance.checkOut = now;
+    //     attendance.workingHours = Number(workingHours.toFixed(2));
 
-    //     //     if (weeklyOffDays.includes(dayName)) {
-    //     //         weeklyOffDates.push(formatDate(date));
-    //     //     }
-    //     // }
-    //     const weeklyOffDates = getWeeklyOffDates(
-    //         month,
-    //         year
+    //     const hour = Number(
+    //         now.toLocaleString('en-US', {
+    //             timeZone: 'Asia/Kolkata',
+    //             hour: '2-digit',
+    //             hour12: false,
+    //         })
     //     );
+
+    //     attendance.status = hour < 14 ? 'halfday' : 'present';
+
+    //     await attendance.save();
 
     //     return {
     //         success: true,
+    //         message: 'Punch Out Successful',
     //         attendance,
-    //         holidayDates: holidays.map(h => h.date),
-    //         weeklyOffDates,
     //     };
     // };
 
+    public getMyAttendance = async (userId: number, month: number, year: number) => {
+        const numericMonth = Number(month);
+        const numericYear = Number(year);
 
-    public getMyAttendance = async (
-  userId: number,
-  month: number,
-  year: number
-) => {
-  const numericMonth = Number(month);
-  const numericYear = Number(year);
+        if (
+            !Number.isInteger(numericMonth) ||
+            !Number.isInteger(numericYear) ||
+            numericMonth < 1 ||
+            numericMonth > 12 ||
+            numericYear < 2000
+        ) {
+            throw new Error(`Invalid month/year received. month=${month}, year=${year}`);
+        }
 
-  if (
-    !Number.isInteger(numericMonth) ||
-    !Number.isInteger(numericYear) ||
-    numericMonth < 1 ||
-    numericMonth > 12 ||
-    numericYear < 2000
-  ) {
-    throw new Error(
-      `Invalid month/year received. month=${month}, year=${year}`
-    );
-  }
+        const startDate = new Date(numericYear, numericMonth - 1, 1);
+        const endDate = new Date(numericYear, numericMonth, 0);
 
-  const startDate = new Date(numericYear, numericMonth - 1, 1);
-  const endDate = new Date(numericYear, numericMonth, 0);
+        const startDateString = formatDate(startDate);
+        const endDateString = formatDate(endDate);
 
-  const startDateString = formatDate(startDate);
-  const endDateString = formatDate(endDate);
+        console.log('Attendance filter:', { userId, month: numericMonth, year: numericYear, startDateString, endDateString, });
 
-  console.log('Attendance filter:', {
-    userId,
-    month: numericMonth,
-    year: numericYear,
-    startDateString,
-    endDateString,
-  });
+        const attendance = await Attendance.findAll({
+            where: {
+                userId,
+                date: {
+                    [Op.between]: [startDateString, endDateString],
+                },
+            },
+        });
 
-  const attendance = await Attendance.findAll({
-    where: {
-      userId,
-      date: {
-        [Op.between]: [startDateString, endDateString],
-      },
-    },
-  });
+        const holidays = await Holiday.findAll({
+            where: {
+                date: {
+                    [Op.between]: [startDateString, endDateString],
+                },
+            },
+        });
 
-  const holidays = await Holiday.findAll({
-    where: {
-      date: {
-        [Op.between]: [startDateString, endDateString],
-      },
-    },
-  });
+        const weeklyOffDates = getWeeklyOffDates(
+            numericMonth,
+            numericYear
+        );
 
-  const weeklyOffDates = getWeeklyOffDates(
-    numericMonth,
-    numericYear
-  );
-
-  return {
-    success: true,
-    attendance,
-    holidayDates: holidays.map((holiday) => holiday.date),
-    weeklyOffDates,
-  };
-};
+        return {
+            success: true,
+            attendance,
+            holidayDates: holidays.map((holiday) => holiday.date),
+            weeklyOffDates,
+        };
+    };
 
     public getOverallStatus = async (userId: number) => {
         const attendance = await Attendance.findAll({ where: { userId } });

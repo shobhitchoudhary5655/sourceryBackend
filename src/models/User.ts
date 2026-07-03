@@ -19,6 +19,7 @@ export interface UserCreationAttributes
     | 'status'
     | 'clBalance'
     | 'slBalance'
+    | 'graceBalance'
   > { }
 
 class User
@@ -68,6 +69,8 @@ class User
   declare clBalance?: number | null;
 
   declare slBalance?: number | null;
+
+  declare graceBalance: number;
 
   declare readonly createdAt: Date;
 
@@ -179,6 +182,12 @@ User.init(
       type: DataTypes.DECIMAL(4, 1),
       allowNull: false,
       defaultValue: 0,
+    },
+
+    graceBalance: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 240,
     },
   },
   {
