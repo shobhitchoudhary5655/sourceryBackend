@@ -23,6 +23,7 @@ class Request
 
     declare id: number;
     declare userId: number;
+    declare requestGroupId: string;
     declare requestType:
         | 'leave'
         | 'wfh';
@@ -37,7 +38,8 @@ class Request
     declare status:
         | 'pending'
         | 'approved'
-        | 'rejected';
+        | 'rejected'
+        | "cancelled";
     declare approvedBy?: number;
     declare approvedAt?: Date;
     declare rejectionReason?: string;
@@ -56,6 +58,10 @@ Request.init(
 
         userId: {
             type: DataTypes.INTEGER,
+            allowNull: false,
+        },
+        requestGroupId: {
+            type: DataTypes.STRING,
             allowNull: false,
         },
 
@@ -96,7 +102,8 @@ Request.init(
             type: DataTypes.ENUM(
                 'pending',
                 'approved',
-                'rejected'
+                'rejected',
+                "cancelled",
             ),
             defaultValue: 'pending',
         },

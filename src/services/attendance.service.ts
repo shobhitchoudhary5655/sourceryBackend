@@ -3,11 +3,16 @@ import { Attendance, User, Request, Holiday } from '../models';
 import { getTodayDate, formatDate } from '../utils/dateHelper';
 import { AttendanceItem, AttendanceStatus } from '../types/attendance.types';
 import { isWeeklyOff, getWeeklyOffDates, } from '../utils/weeklyOff.helper';
+import { getDistance } from 'geolib';
+import { getLocationName } from "../utils/locationHelper";
 
 class AttendanceService {
 
     public getTodayStatus = async (userId: number) => {
         const today = getTodayDate();
+        const user = await User.findByPk(userId, {
+            attributes: ["clBalance", "slBalance", "graceBalance"],
+        });
 
         // const dayName = new Date(today).toLocaleDateString('en-US', {
         //     weekday: 'long',
@@ -27,12 +32,16 @@ class AttendanceService {
                 success: true,
                 status: 'week_off',
                 message: 'Today is Weekly Off',
+                clBalance: user?.clBalance ?? 0,
+                slBalance: user?.slBalance ?? 0,
+                graceBalance: user?.graceBalance ?? 0,
             };
         }
 
         const leave = await Request.findOne({
             where: {
                 userId,
+                requestType: 'leave',
                 status: 'approved',
                 startDate: { [Op.lte]: today },
                 endDate: { [Op.gte]: today },
@@ -44,6 +53,9 @@ class AttendanceService {
                 success: true,
                 status: 'leave',
                 message: 'You are on Leave Today',
+                clBalance: user?.clBalance ?? 0,
+                slBalance: user?.slBalance ?? 0,
+                graceBalance: user?.graceBalance ?? 0,
             };
         }
 
@@ -56,6 +68,9 @@ class AttendanceService {
                 success: true,
                 status: attendance.status,
                 attendance,
+                clBalance: user?.clBalance ?? 0,
+                slBalance: user?.slBalance ?? 0,
+                graceBalance: user?.graceBalance ?? 0,
             };
         }
 
@@ -63,6 +78,9 @@ class AttendanceService {
             success: true,
             status: 'not_marked',
             message: 'Ready For Punch In',
+            clBalance: user?.clBalance ?? 0,
+            slBalance: user?.slBalance ?? 0,
+            graceBalance: user?.graceBalance ?? 0,
         };
     };
 
@@ -78,7 +96,7 @@ class AttendanceService {
         });
     };
 
-    public punchIn = async (userId: number) => {
+    public punchIn = async (userId: number, latitude: number, longitude: number) => {
         const today = getTodayDate();
 
         // if (isWeeklyOff(new Date(today))) {
@@ -87,6 +105,23 @@ class AttendanceService {
         //         message: 'Today is Weekly Off',
         //     };
         // }
+
+        if (
+            latitude === undefined ||
+            longitude === undefined
+        ) {
+            return {
+                success: false,
+                message: "Location is required."
+            };
+        }
+
+        const OFFICE = {
+            latitude: Number(process.env.OFFICE_LAT),
+            longitude: Number(process.env.OFFICE_LNG),
+        };
+
+        const OFFICE_RADIUS = Number(process.env.OFFICE_RADIUS);
 
         const approvedLeave = await Request.findOne({
             where: {
@@ -128,26 +163,80 @@ class AttendanceService {
             return { success: false, message: 'Already Punched In Today' };
         }
 
-        const approvedWFH =
-            await Request.findOne({
-                where: {
-                    userId,
-                    requestType: 'wfh',
-                    status: 'approved',
-                    startDate: { [Op.lte]: today, },
-                    endDate: { [Op.gte]: today, },
-                },
-            });
+        // const approvedWFH =
+        //     await Request.findOne({
+        //         where: {
+        //             userId,
+        //             requestType: 'wfh',
+        //             status: 'approved',
+        //             startDate: { [Op.lte]: today, },
+        //             endDate: { [Op.gte]: today, },
+        //         },
+        //     });
 
+        // if (!approvedWFH) {
 
-        const attendanceStatus = approvedWFH ? 'wfh' : 'present';
+        //     const distance = getDistance(
+        //         OFFICE,
+        //         {
+        //             latitude: Number(latitude),
+        //             longitude: Number(longitude),
+        //         }
+        //     );
+
+        //     console.log('Office:', OFFICE);
+        //     console.log('User:', { latitude, longitude });
+        //     console.log('Distance:', distance);
+        //     console.log('Radius:', OFFICE_RADIUS);
+
+        //     if (distance > OFFICE_RADIUS) {
+        //         return {
+        //             success: false,
+        //             message:
+        //                 "You are outside the office location."
+        //         };
+        //     }
+
+        // }
+        const distance = getDistance(
+            OFFICE,
+            {
+                latitude,
+                longitude,
+            }
+        );
+
+        const inOffice = distance <= OFFICE_RADIUS;
+        const decodedLocation =
+            await getLocationName(
+                latitude,
+                longitude
+            );
+
+        // const attendanceStatus = approvedWFH ? 'wfh' : 'present';
 
         const attendance = await Attendance.create({
             userId,
             date: today,
             checkIn: new Date(),
-            status: attendanceStatus,
+            status: "present",
+            latitude,
+            longitude,
+            inOffice,
+            location: decodedLocation,
         } as any);
+
+        console.log("Office Latitude :", OFFICE.latitude);
+        console.log("Office Longitude:", OFFICE.longitude);
+
+        console.log("Employee Latitude :", latitude);
+        console.log("Employee Longitude:", longitude);
+
+        console.log("Distance:", distance);
+
+        console.log("Office Radius:", OFFICE_RADIUS);
+
+        console.log("In Office:", inOffice);
 
         return {
             success: true,
@@ -369,49 +458,6 @@ class AttendanceService {
         };
     };
 
-    // public markWeeklyOffAttendance = async () => {
-    //     try {
-    //         const today = new Date();
-
-    //         const dayName = today.toLocaleDateString('en-US', {
-    //             weekday: 'long',
-    //         });
-
-    //         const weeklyOff = await WeeklyOff.findOne({
-    //             where: { dayName },
-    //         });
-
-    //         if (!weeklyOff) {
-    //             console.log('Today is not Weekly Off');
-    //             return;
-    //         }
-
-    //         const employees = await User.findAll();
-
-    //         for (const employee of employees) {
-
-    //             const alreadyMarked = await Attendance.findOne({
-    //                 where: {
-    //                     userId: employee.id,
-    //                     date: today,
-    //                 },
-    //             });
-
-    //             if (!alreadyMarked) {
-    //                 await Attendance.create({
-    //                     userId: employee.id,
-    //                     date: today.toString(),
-    //                     status: AttendanceStatus.WEEKLY_OFF,
-    //                 });
-    //             }
-    //         }
-
-    //         console.log('Weekly Off Marked Successfully');
-
-    //     } catch (error) {
-    //         console.log(error);
-    //     }
-    // };
 }
 
 export default new AttendanceService();

@@ -63,16 +63,20 @@ class EmployeeRoutes {
     );
 
     this.router.get(
-    '/upcoming-holidays',
-    authMiddleware.verifyToken,
-    EmployeeController.getUpcomingHolidays
-);
+      '/upcoming-holidays',
+      authMiddleware.verifyToken,
+      EmployeeController.getUpcomingHolidays
+    );
+
+    this.router.patch(
+      "/request/:id/cancel",
+      authMiddleware.verifyToken,
+      LeaveController.cancelRequest
+    );
   }
 }
 
 export default new EmployeeRoutes().router;
-
-// const express = require('express')
 // const router = express.Router()
 
 // const {applyLeave} = require('../controllers/leaveController');
