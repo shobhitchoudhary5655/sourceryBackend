@@ -44,6 +44,79 @@ class SalaryController {
         }
     };
 
+    public getMySalaryHistory = async (req: AuthRequest, res: Response) => {
+        try {
+
+            const userId = req.user!.id;
+            const month = req.query.month ? Number(req.query.month) : undefined;
+            const year = req.query.year ? Number(req.query.year) : undefined;
+            const data = await salaryService.getMySalaryHistory(userId, month, year);
+            return res.status(200).json({
+                success: true,
+                message: "Salary fetched successfully.",
+                data
+            });
+        } catch (error: any) {
+            return res.status(400).json({
+                success: false,
+                message: error.message
+            });
+        }
+    };
+
+    public getMySalaryDetails = async (req: AuthRequest, res: Response) => {
+        try {
+            const userId = req.user!.id;
+            const salaryId = Number(req.params.id);
+            const salary = await salaryService.getMySalaryDetails(userId, salaryId);
+            return res.status(200).json({
+                success: true,
+                message: "Salary details fetched successfully.",
+                data: salary
+            });
+        } catch (error: any) {
+            return res.status(400).json({
+                success: false,
+                message: error.message
+            });
+        }
+    };
+
+    public downloadSalarySlip = async (
+        req: AuthRequest,
+        res: Response
+    ) => {
+
+        try {
+
+            const userId = req.user!.id;
+
+            const salaryId = Number(req.params.id);
+
+            await salaryService.downloadSalarySlip(
+                userId,
+                salaryId,
+                res
+            );
+
+        } catch (error: any) {
+
+            console.log("Salary Slip Error:", error);
+
+
+            if (!res.headersSent) {
+
+                return res.status(400).json({
+                    success: false,
+                    message: error.message,
+                });
+
+            }
+
+        }
+
+    };
+
 }
 
 export default new SalaryController();

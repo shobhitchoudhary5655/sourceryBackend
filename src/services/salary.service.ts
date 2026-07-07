@@ -1,8 +1,11 @@
+import { Response } from "express";
 import { Op } from 'sequelize';
 import salaryDAO from '../daos/salary.dao';
+import { SalaryPayment } from "../models";
 import { User, Request, Attendance } from '../models';
 import { getWorkingDays, getWorkingDaysBetween, isWeeklyOff } from '../utils/weeklyOff.helper';
 import { formatDate } from '../utils/dateHelper';
+import { generateSalarySlip } from "../utils/pdf/salarySlip.generator";
 
 class SalaryService {
 
@@ -235,6 +238,86 @@ class SalaryService {
             data: salary,
         };
     };
+
+    public async getMySalaryHistory(userId: number, month?: number, year?: number) {
+        if (month && year) {
+            const salary = await SalaryPayment.findOne({
+                where: {
+                    userId,
+                    month,
+                    year
+                }
+            });
+
+            if (!salary) {
+                throw new Error("Salary not found.");
+            }
+            return salary;
+        }
+
+        return await SalaryPayment.findAll({
+            where: { userId },
+            attributes: [
+                "id",
+                "month",
+                "year",
+                "salary",
+                "status",
+                "paidDate"
+            ],
+            order: [
+                ["year", "DESC"],
+                ["month", "DESC"]
+            ]
+        });
+
+    }
+
+    public async getMySalaryDetails(userId: number, salaryId: number) {
+        const salary = await SalaryPayment.findOne({
+            where: {
+                id: salaryId,
+                userId
+            }
+        });
+
+        if (!salary) {
+            throw new Error("Salary record not found.");
+        }
+
+        return salary;
+
+    }
+
+    public async downloadSalarySlip(
+    userId: number,
+    salaryId: number,
+    res: Response
+) {
+
+    const salary = await SalaryPayment.findOne({
+        where: {
+            id: salaryId,
+            userId,
+        },
+        include: [
+            {
+                model: User,
+                as: "user",
+            },
+        ],
+    });
+
+    if (!salary) {
+        throw new Error("Salary not found.");
+    }
+
+    await generateSalarySlip(
+        salary,
+        res
+    );
+
+}
 }
 
 export default new SalaryService();
