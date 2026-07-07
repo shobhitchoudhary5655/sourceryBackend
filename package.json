@@ -28,13 +28,17 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "geolib": "^3.3.14",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.6.2",
     "multer": "^2.2.0",
     "multer-s3": "^3.0.1",
     "mysql2": "^3.22.3",
     "node-cron": "^4.2.1",
-    "sequelize": "^6.37.8"
+    "node-geocoder": "^4.4.1",
+    "pdfkit": "^0.19.1",
+    "sequelize": "^6.37.8",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
@@ -44,6 +48,9 @@
     "@types/multer": "^2.1.0",
     "@types/multer-s3": "^3.0.3",
     "@types/node": "^25.9.3",
+    "@types/node-geocoder": "^4.2.6",
+    "@types/pdfkit": "^0.17.6",
+    "@types/uuid": "^10.0.0",
     "nodemon": "^3.1.14",
     "sequelize-cli": "^6.6.5",
     "ts-node": "^10.9.2",
