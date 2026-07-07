@@ -3,7 +3,7 @@ import cors from 'cors';
 import routes from './routes';
 import sequelize, { connectDB, } from './config/database';
 import { AttendanceStatusCron, } from './crons/AttendanceStatusCron';
-import { AutoPunchOutCron } from './crons/AutoPunchOutCron';
+// import { AutoPunchOutCron } from './crons/AutoPunchOutCron';
 import { LeaveBalanceCron } from './crons/UpdateLeaveBalance';
 import { GraceBalanceResetCron } from './crons/GraceBalanceCron';
 
@@ -51,11 +51,11 @@ class App {
 
   private initializeCrons(): void {
     const attendanceCron = new AttendanceStatusCron();
-    const punchOutCron = new AutoPunchOutCron();
+    // const punchOutCron = new AutoPunchOutCron();
     const leaveBalanceCron = new LeaveBalanceCron();
     const graceBalanceResetCron = new GraceBalanceResetCron();
     attendanceCron.start();
-    punchOutCron.start();
+    // punchOutCron.start();
     leaveBalanceCron.start();
     graceBalanceResetCron.start();
     console.log('✅ Cron Jobs Started');
