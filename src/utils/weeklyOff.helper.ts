@@ -64,3 +64,38 @@ export const getWorkingDaysBetween = async (startDate: Date, endDate: Date): Pro
     }
     return days;
 };
+
+export const getWorkingDatesBetween = async (
+    startDate: Date,
+    endDate: Date
+): Promise<Date[]> => {
+
+    const dates: Date[] = [];
+
+    let current = new Date(startDate);
+
+    while (current <= endDate) {
+
+        if (isWeeklyOff(current)) {
+            current.setDate(current.getDate() + 1);
+            continue;
+        }
+
+        const holiday = await Holiday.findOne({
+            where: {
+                date: formatDate(current),
+            },
+        });
+
+        if (holiday) {
+            current.setDate(current.getDate() + 1);
+            continue;
+        }
+
+        dates.push(new Date(current));
+
+        current.setDate(current.getDate() + 1);
+    }
+
+    return dates;
+};

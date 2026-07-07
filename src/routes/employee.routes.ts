@@ -3,6 +3,7 @@ import authMiddleware from '../middleware/authMiddleware';
 import AttendanceController from '../controllers/attendance.controller';
 import LeaveController from '../controllers/leave.controller';
 import EmployeeController from '../controllers/employee.controller';
+import SalaryController from '../controllers/salary.controller';
 
 class EmployeeRoutes {
   public router: Router;
@@ -63,16 +64,38 @@ class EmployeeRoutes {
     );
 
     this.router.get(
-    '/upcoming-holidays',
-    authMiddleware.verifyToken,
-    EmployeeController.getUpcomingHolidays
-);
+      '/upcoming-holidays',
+      authMiddleware.verifyToken,
+      EmployeeController.getUpcomingHolidays
+    );
+
+    this.router.patch(
+      "/request/:id/cancel",
+      authMiddleware.verifyToken,
+      LeaveController.cancelRequest
+    );
+
+    this.router.get(
+      "/mySalary",
+      authMiddleware.verifyToken,
+      SalaryController.getMySalaryHistory
+    );
+
+    this.router.get(
+      "/mySalary/:id",
+      authMiddleware.verifyToken,
+      SalaryController.getMySalaryDetails
+    );
+
+    this.router.get(
+      "/mySalary/:id/slip",
+      authMiddleware.verifyToken,
+      SalaryController.downloadSalarySlip
+    );
   }
 }
 
 export default new EmployeeRoutes().router;
-
-// const express = require('express')
 // const router = express.Router()
 
 // const {applyLeave} = require('../controllers/leaveController');

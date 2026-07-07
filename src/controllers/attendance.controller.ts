@@ -15,7 +15,8 @@ class AttendanceController {
   };
 
   public punchIn = async (req: AuthRequest, res: Response) => {
-    const result = await attendanceService.punchIn(req.user!.id);
+    const { latitude, longitude } = req.body;
+    const result = await attendanceService.punchIn(req.user!.id, latitude, longitude);
     return res.json(result);
   };
 
@@ -25,30 +26,30 @@ class AttendanceController {
   };
 
   public getMyAttendance = async (req: AuthRequest, res: Response) => {
-  const month = Number(req.query.month);
-  const year = Number(req.query.year);
+    const month = Number(req.query.month);
+    const year = Number(req.query.year);
 
-  if (
-    !Number.isInteger(month) ||
-    !Number.isInteger(year) ||
-    month < 1 ||
-    month > 12
-  ) {
-    return res.status(400).json({
-      success: false,
-      message: 'Valid month and year are required',
-      received: req.query,
-    });
-  }
+    if (
+      !Number.isInteger(month) ||
+      !Number.isInteger(year) ||
+      month < 1 ||
+      month > 12
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid month and year are required',
+        received: req.query,
+      });
+    }
 
-  const result = await attendanceService.getMyAttendance(
-    req.user!.id,
-    month,
-    year
-  );
+    const result = await attendanceService.getMyAttendance(
+      req.user!.id,
+      month,
+      year
+    );
 
-  return res.json(result);
-};
+    return res.json(result);
+  };
   public getOverallStatus = async (req: AuthRequest, res: Response) => {
     const result = await attendanceService.getOverallStatus(req.user!.id);
     return res.json(result);

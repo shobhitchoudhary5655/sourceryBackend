@@ -1,8 +1,11 @@
+import { Response } from "express";
 import { Op } from 'sequelize';
 import salaryDAO from '../daos/salary.dao';
+import { SalaryPayment } from "../models";
 import { User, Request, Attendance } from '../models';
 import { getWorkingDays, getWorkingDaysBetween, isWeeklyOff } from '../utils/weeklyOff.helper';
 import { formatDate } from '../utils/dateHelper';
+import { generateSalarySlip } from "../utils/pdf/salarySlip.generator";
 
 class SalaryService {
 
@@ -66,8 +69,8 @@ class SalaryService {
                     userId: employee.id,
                     requestType: "leave",
                     status: "approved",
-                    startDate: { [Op.lte]: monthEnd, },
-                    endDate: { [Op.gte]: monthStart, },
+                    startDate: { [Op.lte]: formatDate(monthEnd), },
+                    endDate: { [Op.gte]: formatDate(monthStart), },
                 },
             });
 
@@ -77,31 +80,70 @@ class SalaryService {
                 totalLopDays += Number(leave.lopDays || 0);
             }
 
-            const rejectedWFHRequests = await Request.findAll({
+            const attendances = await Attendance.findAll({
                 where: {
                     userId: employee.id,
-                    requestType: "wfh",
-                    status: "rejected",
-                    startDate: { [Op.lte]: monthEnd, },
-                    endDate: { [Op.gte]: monthStart, },
+                    status: "present",
+                    date: {
+                        [Op.between]: [
+                            formatDate(monthStart),
+                            formatDate(monthEnd),
+                        ],
+                    },
                 },
             });
 
             let wfhDeductionDays = 0;
+            let hasPendingWFH = false;
 
-            for (const request of rejectedWFHRequests) {
+            for (const attendance of attendances) {
 
-                const effectiveStart = new Date(Math.max(new Date(request.startDate).getTime(), monthStart.getTime()));
+                // Employee worked from office
+                if (attendance.inOffice) {
+                    continue;
+                }
 
-                const effectiveEnd = new Date(Math.min(new Date(request.endDate).getTime(), monthEnd.getTime())
-                );
+                // Employee worked outside office
+                const request = await Request.findOne({
+                    where: {
+                        userId: employee.id,
+                        requestType: "wfh",
+                        startDate: attendance.date,
+                        endDate: attendance.date,
+                        status: { [Op.ne]: "cancelled", },
+                    },
+                });
 
-                const workingDays = await getWorkingDaysBetween(
-                    effectiveStart,
-                    effectiveEnd
-                );
+                // No WFH request
+                if (!request) {
 
-                wfhDeductionDays += workingDays * 0.5;
+                    // Company policy
+                    // Outside office without permission
+                    wfhDeductionDays += 1;
+
+                    continue;
+                }
+
+                switch (request.status) {
+
+                    case "approved":
+                        break;
+
+                    case "pending":
+                        hasPendingWFH = true;
+                        break;
+
+                    case "rejected":
+                        wfhDeductionDays += 0.5;
+                        break;
+                }
+            }
+
+            if (hasPendingWFH) {
+
+                skipped++;
+
+                continue;
             }
 
             const absentDays = await Attendance.count({
@@ -196,6 +238,86 @@ class SalaryService {
             data: salary,
         };
     };
+
+    public async getMySalaryHistory(userId: number, month?: number, year?: number) {
+        if (month && year) {
+            const salary = await SalaryPayment.findOne({
+                where: {
+                    userId,
+                    month,
+                    year
+                }
+            });
+
+            if (!salary) {
+                throw new Error("Salary not found.");
+            }
+            return salary;
+        }
+
+        return await SalaryPayment.findAll({
+            where: { userId },
+            attributes: [
+                "id",
+                "month",
+                "year",
+                "salary",
+                "status",
+                "paidDate"
+            ],
+            order: [
+                ["year", "DESC"],
+                ["month", "DESC"]
+            ]
+        });
+
+    }
+
+    public async getMySalaryDetails(userId: number, salaryId: number) {
+        const salary = await SalaryPayment.findOne({
+            where: {
+                id: salaryId,
+                userId
+            }
+        });
+
+        if (!salary) {
+            throw new Error("Salary record not found.");
+        }
+
+        return salary;
+
+    }
+
+    public async downloadSalarySlip(
+    userId: number,
+    salaryId: number,
+    res: Response
+) {
+
+    const salary = await SalaryPayment.findOne({
+        where: {
+            id: salaryId,
+            userId,
+        },
+        include: [
+            {
+                model: User,
+                as: "user",
+            },
+        ],
+    });
+
+    if (!salary) {
+        throw new Error("Salary not found.");
+    }
+
+    await generateSalarySlip(
+        salary,
+        res
+    );
+
+}
 }
 
 export default new SalaryService();

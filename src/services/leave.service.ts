@@ -1,30 +1,101 @@
 import { Op } from 'sequelize';
+import { v4 as uuidv4 } from "uuid";
 import { User, Attendance, Holiday, Request } from '../models';
 import { formatDate } from '../utils/dateHelper';
 import { ApplyRequestDTO, UpdateLeaveStatusDTO } from '../dtos/leave.dto';
-import { getWorkingDaysBetween, isWeeklyOff, } from '../utils/weeklyOff.helper';
+import { getWorkingDatesBetween, getWorkingDaysBetween, isWeeklyOff, } from '../utils/weeklyOff.helper';
 
 class LeaveService {
 
-    public applyRequest = async (
-        userId: number,
-        data: ApplyRequestDTO
-    ) => {
+    public applyRequest = async (userId: number, data: ApplyRequestDTO) => {
+        // const dates = this.getDatesBetween(
+        //     data.startDate,
+        //     data.endDate
+        // );
+        const requestGroupId = uuidv4();
 
-        const request = await Request.create({
-            userId,
-            requestType: data.requestType,
-            leaveType: data.leaveType,
-            startDate: data.startDate,
-            endDate: data.endDate,
-            reason: data.reason,
+        const monthStart = new Date(data.startDate);
+        monthStart.setDate(1);
+
+        const monthEnd = new Date(
+            monthStart.getFullYear(),
+            monthStart.getMonth() + 1,
+            0
+        );
+
+        const workingDates = await getWorkingDatesBetween(
+            new Date(data.startDate),
+            new Date(data.endDate)
+        );
+
+        const existingRequest = await Request.findOne({
+            where: {
+                userId,
+                requestType: data.requestType,
+                startDate: { [Op.in]: workingDates.map(date => formatDate(date)), },
+                status: { [Op.ne]: "rejected", },
+            },
         });
 
+        if (existingRequest) {
+            throw new Error("You have already applied for one or more selected dates.");
+        }
+
+        let approvedCount = await Request.count({
+            where: {
+                userId,
+                requestType: "wfh",
+                status: "approved",
+                startDate: {
+                    [Op.between]: [
+                        formatDate(monthStart),
+                        formatDate(monthEnd),
+                    ],
+                },
+            },
+        });
+
+        const requests = [];
+
+        for (const date of workingDates) {
+
+            let status: "approved" | "pending" = "pending";
+            let approvedBy = null;
+            let approvedAt = null;
+
+            if (
+                data.requestType === "wfh" &&
+                approvedCount < 1
+            ) {
+
+                status = "approved";
+                approvedBy = 0;
+                approvedAt = new Date();
+
+                approvedCount++;
+            }
+
+            const request = await Request.create({
+                userId,
+                requestGroupId,
+                requestType: data.requestType,
+                leaveType: data.leaveType,
+                startDate: formatDate(date),
+                endDate: formatDate(date),
+                reason: data.reason,
+                status,
+            });
+
+            requests.push(request);
+        }
+
         return {
+
             success: true,
-            request,
+            requests,
+
         };
-    };
+    }
 
     public getMyLeaves = async (userId: number) => {
         const leaves = await Request.findAll({
@@ -233,6 +304,31 @@ class LeaveService {
             success: true,
             message: `Request ${data.status} successfully`,
             request,
+        };
+    };
+
+    public cancelRequest = async (  userId: number,  id: number) => {
+        const request = await Request.findOne({
+            where: {
+                id,
+                userId,
+            },
+        });
+
+        if (!request) {
+            throw new Error("Request not found.");
+        }
+
+        if (request.status !== "pending") {
+            throw new Error("Only pending requests can be cancelled.");
+        }
+
+        request.status = "cancelled";
+        await request.save();
+
+        return {
+            success: true,
+            message: "Request cancelled successfully.",
         };
     };
 }
