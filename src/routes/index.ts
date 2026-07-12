@@ -24,17 +24,3 @@ export class AppRoutes {
 }
 
 export default new AppRoutes().router;
-
-// const express = require('express');
-// const router = express.Router();
-// const authRoutes = require('./authRoutes');
-// const adminRoutes = require('./adminRoutes');
-// const hrRoutes = require('./hrRoutes');
-// const applyLeave = require('./employeeRoutes')
-
-// router.use('/auth', authRoutes);
-// router.use('/admin', adminRoutes);
-// router.use('/hr', hrRoutes);
-// router.use('/employee',applyLeave)
-
-// module.exports = router;

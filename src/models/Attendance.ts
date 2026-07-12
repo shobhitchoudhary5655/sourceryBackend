@@ -8,7 +8,10 @@ export interface AttendanceCreationAttributes
     'id'
     | 'checkIn'
     | 'checkOut'
+    | 'officeHours'
     | 'workingHours'
+    | 'effectiveHours'
+    | 'breakMinutes'
     | 'location'
     | 'notes'
     | 'latitude'
@@ -32,12 +35,16 @@ class Attendance
     | 'absent'
     | 'halfday'
     | 'leave'
+    | 'birthday-leave'
     | 'auto-punch-out'
     | 'holiday'
     | 'weekly-off'
     | 'work-from-home';
 
+  declare officeHours: number;
   declare workingHours: number;
+  declare effectiveHours: number;
+  declare breakMinutes: number;
   declare location?: string;
   declare notes?: string;
   declare latitude: number;
@@ -79,6 +86,7 @@ Attendance.init(
         'absent',
         'halfday',
         'leave',
+        'birthday-leave',
         'auto-punch-out',
         'holiday',
         'weekly-off',
@@ -87,8 +95,23 @@ Attendance.init(
       defaultValue: 'absent',
     },
 
+    officeHours: {
+      type: DataTypes.FLOAT,
+      defaultValue: 0,
+    },
+
     workingHours: {
       type: DataTypes.FLOAT,
+      defaultValue: 0,
+    },
+
+    effectiveHours: {
+      type: DataTypes.FLOAT,
+      defaultValue: 0,
+    },
+
+    breakMinutes: {
+      type: DataTypes.INTEGER,
       defaultValue: 0,
     },
 

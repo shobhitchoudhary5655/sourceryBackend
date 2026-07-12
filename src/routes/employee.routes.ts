@@ -92,6 +92,22 @@ class EmployeeRoutes {
       authMiddleware.verifyToken,
       SalaryController.downloadSalarySlip
     );
+
+    this.router.post(
+      "/break/start",
+      authMiddleware.verifyToken,
+      AttendanceController.startBreak);
+
+    this.router.post(
+      "/break/end",
+      authMiddleware.verifyToken,
+      AttendanceController.endBreak);
+
+    this.router.get(
+      "/break/status",
+      authMiddleware.verifyToken,
+      AttendanceController.getBreakStatus
+    );
   }
 }
 

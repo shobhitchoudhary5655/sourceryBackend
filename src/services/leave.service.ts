@@ -37,6 +37,62 @@ class LeaveService {
             },
         });
 
+        if (data.requestType === "leave" && data.leaveType === "Birthday") {
+
+            const user = await User.findByPk(userId);
+
+            if (!user) {
+                throw new Error("User not found.");
+            }
+
+            if (!user.dateOfBirth) {
+                throw new Error("Your date of birth is not available.");
+            }
+
+            const leaveDate = new Date(data.startDate);
+            const dob = new Date(user.dateOfBirth);
+
+            const isBirthday =
+                leaveDate.getDate() === dob.getDate() &&
+                leaveDate.getMonth() === dob.getMonth();
+
+            if (!isBirthday) {
+                throw new Error("Today is not your birthday. Birthday leave cannot be applied.");
+            }
+
+            if (formatDate(leaveDate) !== formatDate(new Date())) {
+                throw new Error("Birthday leave can only be applied for today.");
+            }
+
+            if (await isWeeklyOff(leaveDate)) {
+                throw new Error("Birthday leave cannot be applied on a weekly off.");
+            }
+
+            const holiday = await Holiday.findOne({
+                where: {
+                    date: formatDate(leaveDate),
+                },
+            });
+
+            if (holiday) {
+                throw new Error("Birthday leave cannot be applied on a holiday.");
+            }
+
+            const existingBirthdayLeave = await Request.findOne({
+                where: {
+                    userId,
+                    leaveType: "Birthday",
+                    status: {
+                        [Op.ne]: "rejected",
+                    },
+                },
+            });
+
+            if (existingBirthdayLeave) {
+                throw new Error("You have already used your Birthday Leave.");
+            }
+        }
+
         if (existingRequest) {
             throw new Error("You have already applied for one or more selected dates.");
         }
@@ -212,8 +268,52 @@ class LeaveService {
             if (!user) {
                 return {
                     success: false,
-                    message: 'User not found',
+                    message: "User not found",
                 };
+            }
+            const leaveDate = new Date(request.startDate);
+
+            if (!user.dateOfBirth) {
+                throw new Error("Employee date of birth is not available.");
+            }
+            const dob = new Date(user.dateOfBirth);
+
+            const isBirthday = leaveDate.getDate() === dob.getDate() && leaveDate.getMonth() === dob.getMonth();
+
+            if (request.leaveType === "Birthday") {
+                if (request.startDate !== request.endDate) {
+                    throw new Error("Birthday leave can only be applied for one day.");
+                }
+                if (!isBirthday) {
+                    throw new Error("Birthday leave can only be taken on the employee's birthday.");
+                }
+
+                if (isWeeklyOff(leaveDate)) {
+                    throw new Error("Birthday leave is not allowed on weekly off.");
+                }
+
+                const holiday = await Holiday.findOne({
+                    where: {
+                        date: formatDate(leaveDate),
+                    },
+                });
+
+                if (holiday) {
+                    throw new Error("Birthday leave is not allowed on a holiday.");
+                }
+
+                const alreadyTaken = await Request.findOne({
+                    where: {
+                        userId: user.id,
+                        leaveType: "Birthday",
+                        status: "approved",
+                        startDate: formatDate(leaveDate),
+                    },
+                });
+
+                if (alreadyTaken) {
+                    throw new Error("Birthday leave has already been used.");
+                }
             }
 
             let currentDate = new Date(request.startDate);
@@ -243,6 +343,8 @@ class LeaveService {
                     request.lopDays = leaveDays - availableSL;
                     user.slBalance = 0;
                 }
+            } else if (request.leaveType === "Birthday") {
+                request.lopDays = 0;
             }
 
             await user.save();
@@ -283,6 +385,9 @@ class LeaveService {
                         userId: request.userId,
                         date: formattedDate,
                         status: 'leave',
+                        latitude: 0,
+                        longitude: 0,
+                        inOffice: false,
                     });
 
                 } else if (attendance.status === 'absent') {
@@ -307,7 +412,7 @@ class LeaveService {
         };
     };
 
-    public cancelRequest = async (  userId: number,  id: number) => {
+    public cancelRequest = async (userId: number, id: number) => {
         const request = await Request.findOne({
             where: {
                 id,

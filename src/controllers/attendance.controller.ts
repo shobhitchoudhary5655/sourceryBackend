@@ -54,6 +54,35 @@ class AttendanceController {
     const result = await attendanceService.getOverallStatus(req.user!.id);
     return res.json(result);
   };
+
+  public startBreak = async (req: AuthRequest, res: Response) => {
+    if (!req.user) {
+      throw new Error("User not found");
+    }
+    const response = await attendanceService.startBreak(req.user.id);
+
+    return res.json(response);
+  };
+
+  public endBreak = async (req: AuthRequest, res: Response) => {
+    if (!req.user) {
+      throw new Error("User not found");
+    }
+    const response = await attendanceService.endBreak(req.user.id);
+
+    return res.json(response);
+  };
+
+  public getBreakStatus = async (req: AuthRequest, res: Response) => {
+    if (!req.user) {
+      throw new Error("User not found");
+    }
+    const response = await attendanceService.getBreakStatus(
+      req.user.id
+    );
+
+    return res.json(response);
+  };
 }
 
 export default new AttendanceController();

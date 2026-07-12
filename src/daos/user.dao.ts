@@ -1,5 +1,5 @@
 import { Op } from 'sequelize';
-import { User, Role, Attendance } from '../models';
+import { User, Role, Attendance, Break } from '../models';
 import { UserCreationAttributes } from '../models/User';
 import { getTodayDate } from '../utils/dateHelper';
 
@@ -81,7 +81,28 @@ class UserDao {
           where: {
             date: today,
           },
-          attributes: ['id', 'date', 'status', 'checkIn', 'checkOut', 'workingHours',],
+          attributes: [
+            'id',
+            'date',
+            'status',
+            'checkIn',
+            'checkOut',
+            'officeHours',
+            'workingHours',
+          ],
+          include: [
+            {
+              model: Break,
+              as: "breaks",
+              required: false,
+              attributes: [
+                "id",
+                "startTime",
+                "endTime",
+                "durationMinutes",
+              ],
+            },
+          ],
         },
       ],
       limit: limitNum,
@@ -107,11 +128,14 @@ class UserDao {
       }
     );
   }
+
+  public async findById(id: number) {
+    return User.findByPk(id);
+  }
 }
 
 export default new UserDao();
 
-// const { User, Role } = require("../models");
 // const {Op} = require('sequelize')
 
 // const findUserByEmail = async (email) => {

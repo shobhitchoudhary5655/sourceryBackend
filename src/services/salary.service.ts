@@ -69,6 +69,7 @@ class SalaryService {
                     userId: employee.id,
                     requestType: "leave",
                     status: "approved",
+                    lopDays: { [Op.gt]: 0, },
                     startDate: { [Op.lte]: formatDate(monthEnd), },
                     endDate: { [Op.gte]: formatDate(monthStart), },
                 },
@@ -290,34 +291,34 @@ class SalaryService {
     }
 
     public async downloadSalarySlip(
-    userId: number,
-    salaryId: number,
-    res: Response
-) {
+        userId: number,
+        salaryId: number,
+        res: Response
+    ) {
 
-    const salary = await SalaryPayment.findOne({
-        where: {
-            id: salaryId,
-            userId,
-        },
-        include: [
-            {
-                model: User,
-                as: "user",
+        const salary = await SalaryPayment.findOne({
+            where: {
+                id: salaryId,
+                userId,
             },
-        ],
-    });
+            include: [
+                {
+                    model: User,
+                    as: "user",
+                },
+            ],
+        });
 
-    if (!salary) {
-        throw new Error("Salary not found.");
+        if (!salary) {
+            throw new Error("Salary not found.");
+        }
+
+        await generateSalarySlip(
+            salary,
+            res
+        );
+
     }
-
-    await generateSalarySlip(
-        salary,
-        res
-    );
-
-}
 }
 
 export default new SalaryService();

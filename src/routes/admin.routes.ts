@@ -113,7 +113,7 @@ class AdminRoutes {
       authMiddleware.verifyToken,
       HolidayController.deleteHoliday
     );
-    
+
     this.router.get(
       '/salary',
       authMiddleware.verifyToken,
@@ -136,6 +136,30 @@ class AdminRoutes {
       '/salary/:id',
       authMiddleware.verifyToken,
       SalaryController.getSalaryDetails
+    );
+
+    this.router.get(
+      "/employees/:id/documents",
+      authMiddleware.verifyToken,
+      AdminController.getEmployeeDocuments
+    );
+
+    this.router.post(
+      "/attendance",
+      authMiddleware.verifyToken,
+      AdminController.createAttendance
+    );
+
+    this.router.get(
+      "/attendance/:id",
+      authMiddleware.verifyToken,
+      AdminController.getAttendanceById
+    );
+
+    this.router.put(
+      "/attendance/:id",
+      authMiddleware.verifyToken,
+      AdminController.updateAttendance
     );
   }
 }

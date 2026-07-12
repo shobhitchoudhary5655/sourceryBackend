@@ -4,6 +4,8 @@ import Attendance from './Attendance';
 import Holiday from './Holiday';
 import Request from './Request';
 import SalaryPayment from './Salary';
+import Break from './Break';
+import EmployeeDocument from './Document';
 
 Role.hasMany(User, {
   foreignKey: 'roleId',
@@ -55,6 +57,26 @@ SalaryPayment.belongsTo(User, {
   as: 'paidByUser',
 });
 
+Attendance.hasMany(Break, {
+  foreignKey: "attendanceId",
+  as: "breaks",
+});
+
+Break.belongsTo(Attendance, {
+  foreignKey: "attendanceId",
+  as: "attendance",
+});
+
+EmployeeDocument.belongsTo(User, {
+    foreignKey: 'userId',
+    as: 'user',
+});
+
+User.hasMany(EmployeeDocument, {
+    foreignKey: 'userId',
+    as: 'documents',
+});
+
 export {
   User,
   Role,
@@ -62,4 +84,6 @@ export {
   Holiday,
   Request,
   SalaryPayment,
+  Break,
+  EmployeeDocument,
 };

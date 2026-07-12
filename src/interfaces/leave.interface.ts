@@ -1,6 +1,7 @@
 export type LeaveType =
   | 'Casual'
   | 'Sick'
+  | 'Birthday'
   | 'Paid'
   | 'Emergency';
 
