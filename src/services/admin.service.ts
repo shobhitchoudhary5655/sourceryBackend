@@ -1,13 +1,15 @@
 import bcrypt from 'bcryptjs';
 import { Op } from 'sequelize';
 import Holiday from '../models/Holiday';
-import { User } from '../models';
+import { User, Attendance } from "../models";
 import userDAO from '../daos/user.dao';
 import roleDAO from '../daos/role.dao';
 import attendanceDAO from '../daos/attendance.dao';
 import { formatDate } from '../utils/dateHelper';
 import { getWeeklyOffDates } from '../utils/weeklyOff.helper';
 import { AttendanceStatus } from '../types/attendance.types';
+import adminDao from '../daos/admin.dao';
+import { CreateAttendanceDTO, UpdateAttendanceDTO } from "../dtos/attendance.dto";
 
 class AdminService {
 
@@ -179,6 +181,188 @@ class AdminService {
       success: true,
       message: `Employee ${newStatus.toLowerCase()} successfully`,
       status: newStatus,
+    };
+  };
+
+  public async getEmployeeDocuments(id: number) {
+    return await adminDao.getEmployeeDocuments(id);
+  }
+
+  public createAttendance = async (data: CreateAttendanceDTO) => {
+
+    const user = await User.findByPk(data.userId);
+
+    if (!user) {
+      throw new Error("Employee not found.");
+    }
+
+    const alreadyExists = await Attendance.findOne({
+      where: {
+        userId: data.userId,
+        date: data.date,
+      },
+    });
+
+    if (alreadyExists) {
+      throw new Error("Attendance already exists for this date.");
+    }
+
+    let officeHours = 0;
+    let workingHours = 0;
+    let effectiveHours = 0;
+
+    let checkIn: Date | undefined;
+    let checkOut: Date | undefined;
+
+    if (
+      data.checkIn &&
+      data.checkOut &&
+      (
+        data.status === "present" ||
+        data.status === "halfday" ||
+        data.status === "work-from-home"
+      )
+    ) {
+
+      checkIn = new Date(`${data.date}T${data.checkIn}:00`);
+
+      checkOut = new Date(`${data.date}T${data.checkOut}:00`);
+
+      officeHours =
+        (checkOut.getTime() - checkIn.getTime()) /
+        (1000 * 60 * 60);
+
+      workingHours = officeHours;
+
+      effectiveHours = officeHours;
+    }
+
+    const attendance = await Attendance.create({
+
+      userId: data.userId,
+
+      date: data.date,
+
+      status: data.status,
+
+      checkIn,
+
+      checkOut,
+
+      officeHours,
+
+      workingHours,
+
+      effectiveHours,
+
+      breakMinutes: 0,
+
+      location: data.location || undefined,
+
+      notes: data.notes || undefined,
+
+      latitude: 0,
+
+      longitude: 0,
+
+      inOffice:
+        data.inOffice ?? true,
+
+    });
+
+    return {
+
+      success: true,
+
+      message: "Attendance added successfully.",
+
+      attendance,
+
+    };
+  };
+
+  public updateAttendance = async (
+    attendanceId: number,
+    data: UpdateAttendanceDTO
+  ) => {
+
+    const attendance = await Attendance.findByPk(attendanceId);
+
+    if (!attendance) {
+      throw new Error("Attendance not found.");
+    }
+
+    if (data.status) {
+      attendance.status = data.status;
+    }
+
+    if (data.location !== undefined) {
+      attendance.location = data.location;
+    }
+
+    if (data.notes !== undefined) {
+      attendance.notes = data.notes;
+    }
+
+    if (data.inOffice !== undefined) {
+      attendance.inOffice = data.inOffice;
+    }
+
+    let checkIn = attendance.checkIn;
+    let checkOut = attendance.checkOut;
+
+    if (data.checkIn) {
+      checkIn = new Date(`${attendance.date}T${data.checkIn}:00`);
+      attendance.checkIn = checkIn;
+    }
+
+    if (data.checkOut) {
+      checkOut = new Date(`${attendance.date}T${data.checkOut}:00`);
+      attendance.checkOut = checkOut;
+    }
+
+    if (checkIn && checkOut) {
+
+      const officeHours =
+        (checkOut.getTime() - checkIn.getTime()) /
+        (1000 * 60 * 60);
+
+      attendance.officeHours = officeHours;
+      attendance.workingHours = officeHours;
+      attendance.effectiveHours = officeHours;
+    } else {
+
+      attendance.officeHours = 0;
+      attendance.workingHours = 0;
+      attendance.effectiveHours = 0;
+    }
+
+    await attendance.save();
+
+    return {
+      success: true,
+      message: "Attendance updated successfully.",
+      attendance,
+    };
+  };
+
+  public getAttendanceById = async (id: number) => {
+    const attendance = await Attendance.findByPk(id, {
+      include: [
+        {
+          model: User,
+          as: "user",
+        },
+      ],
+    });
+
+    if (!attendance) {
+      throw new Error("Attendance not found");
+    }
+
+    return {
+      attendance,
+      employee: attendance,
     };
   };
 }

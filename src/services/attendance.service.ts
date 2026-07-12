@@ -1,5 +1,5 @@
 import { Op } from 'sequelize';
-import { Attendance, User, Request, Holiday } from '../models';
+import { Attendance, User, Request, Holiday, Break } from '../models';
 import { getTodayDate, formatDate } from '../utils/dateHelper';
 import { AttendanceItem, AttendanceStatus } from '../types/attendance.types';
 import { isWeeklyOff, getWeeklyOffDates, } from '../utils/weeklyOff.helper';
@@ -275,21 +275,78 @@ class AttendanceService {
             };
         }
 
+        const activeBreak = await Break.findOne({
+            where: {
+                attendanceId: attendance.id,
+                endTime: null,
+            },
+        });
+
+        if (activeBreak) {
+            return {
+                success: false,
+                message: "Please end your break before punching out.",
+            };
+        }
+
         const now = new Date();
 
-        // Working minutes
-        const workingMinutes = Math.floor((now.getTime() - attendance.checkIn!.getTime()) / (1000 * 60));
+        // Total office time (Punch In -> Punch Out)
+        const grossMinutes = Math.floor(
+            (now.getTime() - attendance.checkIn!.getTime()) / (1000 * 60)
+        );
 
-        // Working hours (for display)
-        const workingHours = Number((workingMinutes / 60).toFixed(2));
+        // Fetch today's breaks
+        const breaks = await Break.findAll({
+            where: {
+                attendanceId: attendance.id,
+            },
+        });
 
+        const totalBreakMinutes = breaks.reduce(
+            (sum, item) => sum + item.durationMinutes,
+            0
+        );
+
+        // Company policy
+        const REQUIRED_MINUTES =     Number(process.env.WORKING_HOURS || 8) * 60;
+
+        const FREE_LUNCH_MINUTES =    Number(process.env.FREE_LUNCH_MINUTES || 30);
+
+        // Actual work done
+        const workingMinutes = grossMinutes - totalBreakMinutes;
+
+        // Deduct only lunch beyond 30 minutes
+        const extraBreakMinutes = Math.max(
+            0,
+            totalBreakMinutes - FREE_LUNCH_MINUTES
+        );
+
+        // Effective office time for attendance calculation
+        const effectiveMinutes = grossMinutes - extraBreakMinutes;
+
+        // Save attendance
         attendance.checkOut = now;
-        attendance.workingHours = workingHours;
 
-        const REQUIRED_MINUTES = 8 * 60;
+        attendance.officeHours = Number(
+            (grossMinutes / 60).toFixed(2)
+        );
 
-        // Minutes employee is short
-        const shortage = Math.max(0, REQUIRED_MINUTES - workingMinutes);
+        attendance.workingHours = Number(
+            (workingMinutes / 60).toFixed(2)
+        );
+
+        attendance.effectiveHours = Number(
+            (effectiveMinutes / 60).toFixed(2)
+        );
+
+        attendance.breakMinutes = totalBreakMinutes;
+
+        // Grace calculation
+        const shortage = Math.max(
+            0,
+            REQUIRED_MINUTES - effectiveMinutes
+        );
 
         if (shortage === 0) {
             attendance.status = "present";
@@ -297,7 +354,6 @@ class AttendanceService {
             if (user.graceBalance >= shortage) {
                 user.graceBalance -= shortage;
                 attendance.status = "present";
-
                 await user.save();
             } else {
                 attendance.status = "halfday";
@@ -313,49 +369,6 @@ class AttendanceService {
             graceBalance: user.graceBalance,
         };
     };
-
-    // public punchOut = async (userId: number) => {
-    //     const today = getTodayDate();
-
-    //     const attendance = await Attendance.findOne({
-    //         where: { userId, date: today },
-    //     });
-
-    //     if (!attendance) {
-    //         return { success: false, message: 'Please Punch In First' };
-    //     }
-
-    //     if (attendance.checkOut) {
-    //         return { success: false, message: 'Already Punched Out' };
-    //     }
-
-    //     const now = new Date();
-
-    //     const workingHours =
-    //         (now.getTime() - new Date((attendance as any).checkIn).getTime()) /
-    //         (1000 * 60 * 60);
-
-    //     attendance.checkOut = now;
-    //     attendance.workingHours = Number(workingHours.toFixed(2));
-
-    //     const hour = Number(
-    //         now.toLocaleString('en-US', {
-    //             timeZone: 'Asia/Kolkata',
-    //             hour: '2-digit',
-    //             hour12: false,
-    //         })
-    //     );
-
-    //     attendance.status = hour < 14 ? 'halfday' : 'present';
-
-    //     await attendance.save();
-
-    //     return {
-    //         success: true,
-    //         message: 'Punch Out Successful',
-    //         attendance,
-    //     };
-    // };
 
     public getMyAttendance = async (userId: number, month: number, year: number) => {
         const numericMonth = Number(month);
@@ -458,6 +471,164 @@ class AttendanceService {
         };
     };
 
+    public startBreak = async (userId: number) => {
+
+        const today = getTodayDate();
+
+        const attendance = await Attendance.findOne({
+            where: {
+                userId,
+                date: today,
+            },
+        });
+
+        if (!attendance) {
+            return {
+                success: false,
+                message: "Please punch in first.",
+            };
+        }
+
+        if (attendance.checkOut) {
+            return {
+                success: false,
+                message: "Already punched out.",
+            };
+        }
+
+        const activeBreak = await Break.findOne({
+            where: {
+                attendanceId: attendance.id,
+                endTime: null,
+            },
+        });
+
+        if (activeBreak) {
+            return {
+                success: false,
+                message: "Break already started.",
+            };
+        }
+
+        const breakData = await Break.create({
+            attendanceId: attendance.id,
+            userId,
+            startTime: new Date(),
+        });
+
+        return {
+            success: true,
+            message: "Break Started.",
+            breakStartTime: breakData.startTime,
+        };
+    };
+
+    public endBreak = async (userId: number) => {
+
+        const today = getTodayDate();
+
+        const attendance = await Attendance.findOne({
+            where: {
+                userId,
+                date: today,
+            }
+        });
+
+        if (!attendance) {
+            return {
+                success: false,
+                message: "Attendance not found."
+            };
+        }
+
+        const activeBreak = await Break.findOne({
+            where: {
+                attendanceId: attendance.id,
+                endTime: null,
+            }
+        });
+
+        if (!activeBreak) {
+            return {
+                success: false,
+                message: "No active break."
+            };
+        }
+
+        const now = new Date();
+
+        const durationMinutes = Math.floor(
+            (now.getTime() - activeBreak.startTime.getTime()) / (1000 * 60)
+        );
+
+        activeBreak.endTime = now;
+        activeBreak.durationMinutes = durationMinutes;
+
+        await activeBreak.save();
+
+        const breaks = await Break.findAll({
+            where: {
+                attendanceId: attendance.id,
+            },
+        });
+
+        const totalBreakMinutes = breaks.reduce(
+            (sum, item) => sum + item.durationMinutes,
+            0
+        );
+
+        return {
+            success: true,
+            message: "Break Ended.",
+            totalBreakMinutes,
+        };
+    }
+
+    public getBreakStatus = async (userId: number) => {
+
+        const today = getTodayDate();
+
+        const attendance = await Attendance.findOne({
+            where: {
+                userId,
+                date: today,
+            },
+        });
+
+        if (!attendance) {
+            return {
+                success: true,
+                isOnBreak: false,
+                breakStartTime: null,
+                totalBreakMinutes: 0,
+            };
+        }
+
+        const activeBreak = await Break.findOne({
+            where: {
+                attendanceId: attendance.id,
+                endTime: null,
+            },
+        });
+
+        const breaks = await Break.findAll({
+            where: {
+                attendanceId: attendance.id,
+            },
+        });
+
+        const totalBreakMinutes = breaks.reduce(
+            (sum, item) => sum + item.durationMinutes,
+            0
+        );
+
+        return {
+            success: true,
+            isOnBreak: !!activeBreak,
+            breakStartTime: activeBreak?.startTime ?? null,
+            totalBreakMinutes,
+        };
+    };
 }
 
 export default new AttendanceService();

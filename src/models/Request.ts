@@ -30,6 +30,7 @@ class Request
     declare leaveType?:
         | 'Casual'
         | 'Sick'
+        | 'Birthday'
         | 'Paid'
         | 'Emergency';
     declare startDate: string;
@@ -77,6 +78,7 @@ Request.init(
             type: DataTypes.ENUM(
                 'Casual',
                 'Sick',
+                'Birthday',
                 'Paid',
                 'Emergency'
             ),

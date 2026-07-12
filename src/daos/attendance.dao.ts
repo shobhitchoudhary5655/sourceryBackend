@@ -1,5 +1,5 @@
 import { Op } from 'sequelize';
-import { Attendance, User, } from '../models';
+import { Attendance, User, Break } from '../models';
 import { AttendanceCreationAttributes } from '../models/Attendance';
 
 class AttendanceDao {
@@ -9,7 +9,7 @@ class AttendanceDao {
             include: [
                 {
                     model: User,
-                    as : 'user',
+                    as: 'user',
                     attributes: ['id', 'name', 'email', 'designation',],
                 },
             ],
@@ -17,7 +17,7 @@ class AttendanceDao {
         });
     }
 
-    public async findOne(userId: number, date: string ) {
+    public async findOne(userId: number, date: string) {
         return Attendance.findOne({
             where: {
                 userId,
@@ -26,7 +26,7 @@ class AttendanceDao {
         });
     }
 
-    public async create(data: AttendanceCreationAttributes ) {
+    public async create(data: AttendanceCreationAttributes) {
         return Attendance.create(data);
     }
 
@@ -39,89 +39,51 @@ class AttendanceDao {
             where: {
                 userId: employeeId,
             },
-            order: [['date', 'DESC']],
+            include: [
+                {
+                    model: Break,
+                    as: "breaks",
+                    required: false,
+                    attributes: [
+                        "id",
+                        "startTime",
+                        "endTime",
+                        "durationMinutes",
+                    ],
+                },
+            ],
+            order: [["date", "DESC"]],
         });
     }
 
-    public async getAttendanceStatus(employeeId: string, startDate: any, endDate: any) {
+    public async getAttendanceStatus(
+        employeeId: string,
+        startDate: any,
+        endDate: any
+    ) {
         return Attendance.findAll({
             where: {
                 userId: employeeId,
                 date: {
-                    [Op.between]: [startDate, endDate,],
+                    [Op.between]: [startDate, endDate],
                 },
             },
+            include: [
+                {
+                    model: Break,
+                    as: "breaks",
+                    required: false,
+                    attributes: [
+                        "id",
+                        "startTime",
+                        "endTime",
+                        "durationMinutes",
+                    ],
+                },
+            ],
+            order: [["date", "DESC"]],
         });
     }
 }
 
 export default new AttendanceDao();
-
-// const {User,Role,Attendance} = require('../models')
-// const { Op } = require('sequelize');
-
-// const findAllAttenadance = async () => {
-//     return await Attendance.findAll({
-//         include: [
-//             {
-//                 model : User,
-//                 attributes: [
-//                     'id',
-//                     'name',
-//                     'email',
-//                     'designation',
-//                 ]
-//             }
-//         ],
-//         order:[['date','DESC']]
-//     })
-// }
-
-// const findOneAttendance = async (userId, date) => {
-//     return await Attendance.findOne({
-//         where: {
-//             userId,
-//             date
-//         }
-//     })
-// }
-
-// const createAttendance = async (data) => {
-//     return await Attendance.create({
-//         data
-//     })
-// }
-
-// const updateAttendance = async (attendance) => {
-//     return await attendance.save()
-// }
-
-// const getEmployeeAttendance = async(emplyoeeId) => {
-//     return await Attendance.findAll({
-//         where: {
-//             userId : emplyoeeId
-//         },
-//         order: [['date','DESC']]
-//     })
-// }
-
-// const getAttendanceStatus = async (employeeId,startDate,endDate) => {
-//   return await Attendance.findAll({
-//     where: {
-//       userId: employeeId,
-//       date:{
-//         [Op.between] : [startDate,endDate]
-//       }
-//     }
-//   })
-// };
-
-
-// module.exports = {
-//     findAllAttenadance,
-//     findOneAttendance,
-//     createAttendance,
-//     updateAttendance,
-//     getEmployeeAttendance,
-//     getAttendanceStatus
-// }

@@ -8,6 +8,7 @@ export interface IRequest {
     leaveType?:
     | 'Casual'
     | 'Sick'
+    | 'Birthday'
     | 'Paid'
     | 'Emergency';
     startDate: string;

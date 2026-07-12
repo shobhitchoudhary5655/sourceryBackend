@@ -9,11 +9,15 @@ export interface IAttendance {
   | 'absent'
   | 'halfday'
   | 'leave'
+  | 'birthday-leave'
   | 'auto-punch-out'
   | 'holiday'
   | 'weekly-off'
   | 'work-from-home';
+  officeHours: number;
   workingHours: number;
+  effectiveHours: number;
+  breakMinutes: number;
   location?: string;
   notes?: string;
   latitude: number;
