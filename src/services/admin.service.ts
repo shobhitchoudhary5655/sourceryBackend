@@ -10,6 +10,7 @@ import { getWeeklyOffDates } from '../utils/weeklyOff.helper';
 import { AttendanceStatus } from '../types/attendance.types';
 import adminDao from '../daos/admin.dao';
 import { CreateAttendanceDTO, UpdateAttendanceDTO } from "../dtos/attendance.dto";
+import notificationService from './notification.service';
 
 class AdminService {
 
@@ -60,13 +61,20 @@ class AdminService {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await userDAO.createEmployee({
+    const employee = await userDAO.createEmployee({
       name,
       email,
       password: hashedPassword,
       phone,
       designation,
       roleId,
+    });
+
+    await notificationService.sendToUser({
+      userId: employee.id,
+      title: "Welcome to SourceryIT",
+      body: "Your employee account has been created successfully.",
+      type: "GENERAL",
     });
 
     return {
@@ -176,7 +184,15 @@ class AdminService {
     const newStatus = employee.status === "Active" ? "Inactive" : "Active";
 
     await employee.update({ status: newStatus, });
-
+    await notificationService.sendToUser({
+      userId: employee.id,
+      title: "Account Status Updated",
+      body:
+        newStatus === "Active"
+          ? "Your account has been activated."
+          : "Your account has been deactivated.",
+      type: "GENERAL",
+    });
     return {
       success: true,
       message: `Employee ${newStatus.toLowerCase()} successfully`,
@@ -270,6 +286,14 @@ class AdminService {
 
     });
 
+    await notificationService.sendToUser({
+      userId: attendance.userId,
+      title: "Attendance Added",
+      body: `Attendance for ${attendance.date} has been added by Admin.`,
+      type: "ATTENDANCE",
+      referenceId: attendance.id,
+    });
+
     return {
 
       success: true,
@@ -338,7 +362,13 @@ class AdminService {
     }
 
     await attendance.save();
-
+    await notificationService.sendToUser({
+      userId: attendance.userId,
+      title: "Attendance Updated",
+      body: `Your attendance for ${attendance.date} has been updated.`,
+      type: "ATTENDANCE",
+      referenceId: attendance.id,
+    });
     return {
       success: true,
       message: "Attendance updated successfully.",

@@ -6,6 +6,7 @@ import Request from './Request';
 import SalaryPayment from './Salary';
 import Break from './Break';
 import EmployeeDocument from './Document';
+import Notification from "./Notification";
 
 Role.hasMany(User, {
   foreignKey: 'roleId',
@@ -68,13 +69,23 @@ Break.belongsTo(Attendance, {
 });
 
 EmployeeDocument.belongsTo(User, {
-    foreignKey: 'userId',
-    as: 'user',
+  foreignKey: 'userId',
+  as: 'user',
 });
 
 User.hasMany(EmployeeDocument, {
-    foreignKey: 'userId',
-    as: 'documents',
+  foreignKey: 'userId',
+  as: 'documents',
+});
+
+User.hasMany(Notification, {
+  foreignKey: "userId",
+  as: "notifications",
+});
+
+Notification.belongsTo(User, {
+  foreignKey: "userId",
+  as: "user",
 });
 
 export {
@@ -86,4 +97,5 @@ export {
   SalaryPayment,
   Break,
   EmployeeDocument,
+  Notification,
 };

@@ -4,7 +4,7 @@ import { User } from '../models';
 export class GraceBalanceResetCron {
 
     public start(): void {
-        cron.schedule('0 0 1 * *', async () => { await this.resetGraceBalance(); },
+        cron.schedule('05 10 1 * *', async () => { await this.resetGraceBalance(); },
             { timezone: 'Asia/Kolkata', }
         );
         console.log('✅ Grace Balance Reset Cron Started');

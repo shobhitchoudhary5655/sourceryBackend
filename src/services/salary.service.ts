@@ -6,6 +6,7 @@ import { User, Request, Attendance } from '../models';
 import { getWorkingDays, getWorkingDaysBetween, isWeeklyOff } from '../utils/weeklyOff.helper';
 import { formatDate } from '../utils/dateHelper';
 import { generateSalarySlip } from "../utils/pdf/salarySlip.generator";
+import notificationService from "./notification.service";
 
 class SalaryService {
 
@@ -216,6 +217,18 @@ class SalaryService {
         await salaryDAO.updateSalary(salary, {
             status: 'Paid',
             paidDate: new Date(),
+        });
+
+        await notificationService.sendToUser({
+            userId: salary.userId,
+            title: "Salary Credited 💰",
+            body: `Your salary for ${salary.month}/${salary.year} has been credited successfully.`,
+            type: "SALARY",
+            referenceId: salary.id,
+            data: {
+                salaryId: String(salary.id),
+                type: "salary",
+            },
         });
 
         return {

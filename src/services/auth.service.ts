@@ -7,14 +7,15 @@ import { UserWithRole } from '../types/user.type';
 class AuthService {
 
   public login = async (data: LoginDTO) => {
-    const { email, password } = data;
+
+    const { email, password, fcmToken } = data;
 
     const user = await User.findOne({
       where: { email },
       include: [
         {
           model: Role,
-          as : 'role',
+          as: 'role',
           attributes: ['id', 'name'],
         },
       ],
@@ -34,6 +35,20 @@ class AuthService {
         success: false,
         message: 'Invalid Password',
       };
+    }
+
+    // Save latest FCM Token
+    if (fcmToken && user.fcmToken !== fcmToken) {
+      await User.update(
+        {
+          fcmToken,
+        },
+        {
+          where: {
+            id: user.id,
+          },
+        },
+      );
     }
 
     const token = jwt.sign(

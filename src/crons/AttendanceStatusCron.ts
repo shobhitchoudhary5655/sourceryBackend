@@ -5,7 +5,7 @@ import { AttendanceStatus } from '../types/attendance.types';
 import { getYesterdayDate } from '../utils/dateHelper';
 export class AttendanceStatusCron {
   public start(): void {
-    cron.schedule('0 0 * * *', async () => { await this.updateAttendanceStatus(); },
+    cron.schedule('0 10 * * *', async () => { await this.updateAttendanceStatus(); },
       { timezone: 'Asia/Kolkata', }
     );
     console.log('✅ Attendance Status Cron Started');

@@ -4,6 +4,7 @@ import { User, Attendance, Holiday, Request } from '../models';
 import { formatDate } from '../utils/dateHelper';
 import { ApplyRequestDTO, UpdateLeaveStatusDTO } from '../dtos/leave.dto';
 import { getWorkingDatesBetween, getWorkingDaysBetween, isWeeklyOff, } from '../utils/weeklyOff.helper';
+import notificationService from './notification.service';
 
 class LeaveService {
 
@@ -240,6 +241,19 @@ class LeaveService {
             request.status = 'rejected';
             await request.save();
 
+            await notificationService.sendToUser({
+                userId: request.userId,
+                title: "Leave Request Rejected",
+                body: `Your ${request.leaveType ?? ""} leave request has been rejected.`,
+                type: "LEAVE",
+                referenceId: request.id,
+                data: {
+                    requestId: String(request.id),
+                    status: "rejected",
+                },
+            });
+
+
             return {
                 success: true,
                 message: 'Request rejected successfully',
@@ -252,6 +266,18 @@ class LeaveService {
 
             request.status = 'approved';
             await request.save();
+
+            await notificationService.sendToUser({
+                userId: request.userId,
+                title: "WFH Approved",
+                body: "Your Work From Home request has been approved.",
+                type: "WFH",
+                referenceId: request.id,
+                data: {
+                    requestId: String(request.id),
+                    status: "approved",
+                },
+            });
 
             return {
                 success: true,
@@ -403,6 +429,18 @@ class LeaveService {
             // Finally Approve Request
             request.status = 'approved';
             await request.save();
+
+            await notificationService.sendToUser({
+                userId: request.userId,
+                title: "Leave Approved",
+                body: `Your ${request.leaveType ?? ""} leave request has been approved.`,
+                type: "LEAVE",
+                referenceId: request.id,
+                data: {
+                    requestId: String(request.id),
+                    status: "approved",
+                },
+            });
         }
 
         return {
