@@ -20,6 +20,7 @@ export interface UserCreationAttributes
     | 'clBalance'
     | 'slBalance'
     | 'graceBalance'
+    | 'fcmToken'
   > { }
 
 class User
@@ -71,6 +72,8 @@ class User
   declare slBalance?: number | null;
 
   declare graceBalance: number;
+
+  declare fcmToken?: string | null;
 
   declare readonly createdAt: Date;
 
@@ -188,6 +191,12 @@ User.init(
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 240,
+    },
+
+    fcmToken: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      defaultValue: null,
     },
   },
   {

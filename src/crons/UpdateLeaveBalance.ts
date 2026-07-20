@@ -5,7 +5,7 @@ import { User } from "../models";
 export class LeaveBalanceCron {
 
     public start(): void {
-        cron.schedule("0 0 1 * *", async () => {
+        cron.schedule("05 10 1 * *", async () => {
             await this.creditLeaveBalance();
         },
             { timezone: "Asia/Kolkata", }

@@ -1,13 +1,11 @@
-import { Role } from '../models';
-
 export interface UserWithRole {
-  id: string;
-  name: string;
-  email: string;
-  password: string;
-
-  role: {
-    id: string;
+    id: number;
     name: string;
-  };
+    email: string;
+    password: string;
+    fcmToken?: string | null;
+    role: {
+        id: number;
+        name: string;
+    };
 }

@@ -58,3 +58,6 @@ Thumbs.db
 # Uploads
 # =========================
 uploads/
+
+
+src/config/firebase-service-account.json

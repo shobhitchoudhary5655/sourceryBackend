@@ -3,9 +3,11 @@ import cors from 'cors';
 import routes from './routes';
 import sequelize, { connectDB, } from './config/database';
 import { AttendanceStatusCron, } from './crons/AttendanceStatusCron';
-// import { AutoPunchOutCron } from './crons/AutoPunchOutCron';
 import { LeaveBalanceCron } from './crons/UpdateLeaveBalance';
 import { GraceBalanceResetCron } from './crons/GraceBalanceCron';
+import { PunchOutReminderCron } from './crons/PunchOutReminderCron';
+import { HolidayReminderCron } from './crons/HolidayReminderCron';
+import { SalaryGenerationCron } from './crons/SalaryGenerationCron';
 
 class App {
   public app: Application;
@@ -51,13 +53,17 @@ class App {
 
   private initializeCrons(): void {
     const attendanceCron = new AttendanceStatusCron();
-    // const punchOutCron = new AutoPunchOutCron();
+    const punchOutReminder = new PunchOutReminderCron();
     const leaveBalanceCron = new LeaveBalanceCron();
     const graceBalanceResetCron = new GraceBalanceResetCron();
+    const holidayReminder = new HolidayReminderCron();
+    const autosalarygenerate = new SalaryGenerationCron();
     attendanceCron.start();
-    // punchOutCron.start();
+    punchOutReminder.start();
     leaveBalanceCron.start();
     graceBalanceResetCron.start();
+    holidayReminder.start();
+    autosalarygenerate.start();
     console.log('✅ Cron Jobs Started');
   }
 

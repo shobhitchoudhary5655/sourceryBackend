@@ -5,6 +5,7 @@ import { AttendanceItem, AttendanceStatus } from '../types/attendance.types';
 import { isWeeklyOff, getWeeklyOffDates, } from '../utils/weeklyOff.helper';
 import { getDistance } from 'geolib';
 import { getLocationName } from "../utils/locationHelper";
+import notificationService from './notification.service';
 
 class AttendanceService {
 
@@ -226,6 +227,14 @@ class AttendanceService {
             location: decodedLocation,
         } as any);
 
+        await notificationService.sendToUser({
+            userId,
+            title: "Punch In Successful",
+            body: `You have successfully punched in at ${new Date().toLocaleTimeString()}.`,
+            type: "ATTENDANCE",
+            referenceId: attendance.id,
+        });
+
         console.log("Office Latitude :", OFFICE.latitude);
         console.log("Office Longitude:", OFFICE.longitude);
 
@@ -309,9 +318,9 @@ class AttendanceService {
         );
 
         // Company policy
-        const REQUIRED_MINUTES =     Number(process.env.WORKING_HOURS || 8) * 60;
+        const REQUIRED_MINUTES = Number(process.env.WORKING_HOURS || 8) * 60;
 
-        const FREE_LUNCH_MINUTES =    Number(process.env.FREE_LUNCH_MINUTES || 30);
+        const FREE_LUNCH_MINUTES = Number(process.env.FREE_LUNCH_MINUTES || 30);
 
         // Actual work done
         const workingMinutes = grossMinutes - totalBreakMinutes;
@@ -355,13 +364,32 @@ class AttendanceService {
                 user.graceBalance -= shortage;
                 attendance.status = "present";
                 await user.save();
+                await notificationService.sendToUser({
+                    userId,
+                    title: "Grace Time Used",
+                    body: `${shortage} minutes have been deducted from your grace balance.`,
+                    type: "ATTENDANCE",
+                });
             } else {
                 attendance.status = "halfday";
+                await notificationService.sendToUser({
+                    userId,
+                    title: "Half Day Marked",
+                    body: "You have been marked as Half Day because your effective working hours were insufficient.",
+                    type: "ATTENDANCE",
+                    referenceId: attendance.id,
+                });
             }
         }
 
         await attendance.save();
-
+        await notificationService.sendToUser({
+            userId,
+            title: "Punch Out Successful",
+            body: `Working Hours : ${attendance.workingHours} hrs`,
+            type: "ATTENDANCE",
+            referenceId: attendance.id,
+        });
         return {
             success: true,
             message: "Punch Out Successful",
@@ -515,6 +543,12 @@ class AttendanceService {
             userId,
             startTime: new Date(),
         });
+        await notificationService.sendToUser({
+            userId,
+            title: "Break Started",
+            body: "Your break has started.",
+            type: "ATTENDANCE",
+        });
 
         return {
             success: true,
@@ -565,7 +599,12 @@ class AttendanceService {
         activeBreak.durationMinutes = durationMinutes;
 
         await activeBreak.save();
-
+        await notificationService.sendToUser({
+            userId,
+            title: "Break Ended",
+            body: `Break Duration : ${durationMinutes} minutes`,
+            type: "ATTENDANCE",
+        });
         const breaks = await Break.findAll({
             where: {
                 attendanceId: attendance.id,
