@@ -51,7 +51,9 @@ class AttendanceController {
     return res.json(result);
   };
   public getOverallStatus = async (req: AuthRequest, res: Response) => {
-    const result = await attendanceService.getOverallStatus(req.user!.id);
+    const month = Number(req.query.month);
+    const year = Number(req.query.year);
+    const result = await attendanceService.getOverallStatus(req.user!.id,month, year);
     return res.json(result);
   };
 

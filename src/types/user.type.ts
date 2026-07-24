@@ -3,7 +3,8 @@ export interface UserWithRole {
     name: string;
     email: string;
     password: string;
-    fcmToken?: string | null;
+    fcmToken?: string;
+    fcmTokens?: string[];
     role: {
         id: number;
         name: string;

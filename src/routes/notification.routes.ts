@@ -11,6 +11,18 @@ class NotificationRoutes {
 
     private initializeRoutes(): void {
 
+        this.router.post(
+            "/token",
+            authMiddleware.verifyToken,
+            notificationController.saveFCMToken,
+        );
+
+        this.router.delete(
+            "/token",
+            authMiddleware.verifyToken,
+            notificationController.removeFCMToken,
+        );
+
         this.router.get(
             "/",
             authMiddleware.verifyToken,

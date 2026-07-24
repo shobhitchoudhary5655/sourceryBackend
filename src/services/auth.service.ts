@@ -37,18 +37,15 @@ class AuthService {
       };
     }
 
-    // Save latest FCM Token
-    if (fcmToken && user.fcmToken !== fcmToken) {
-      await User.update(
-        {
-          fcmToken,
-        },
-        {
-          where: {
-            id: user.id,
-          },
-        },
-      );
+    if (fcmToken) {
+      const tokens = user.fcmTokens || [];
+      if (!tokens.includes(fcmToken)) {
+        tokens.push(fcmToken);
+        await User.update(
+          { fcmTokens: tokens, },
+          { where: { id: user.id, }, },
+        );
+      }
     }
 
     const token = jwt.sign(

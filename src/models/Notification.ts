@@ -33,6 +33,7 @@ class Notification
 
     declare type:
         "LEAVE"
+        | "LEAVE_REQUEST"
         | "WFH"
         | "ATTENDANCE"
         | "BIRTHDAY"
@@ -77,6 +78,7 @@ Notification.init(
         type: {
             type: DataTypes.ENUM(
                 "LEAVE",
+                "LEAVE_REQUEST",
                 "WFH",
                 "ATTENDANCE",
                 "BIRTHDAY",
