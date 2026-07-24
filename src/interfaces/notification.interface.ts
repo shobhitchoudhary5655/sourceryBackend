@@ -9,6 +9,7 @@ export interface INotification {
 
     type:
     "LEAVE"
+    | "LEAVE_REQUEST"
     | "WFH"
     | "ATTENDANCE"
     | "BIRTHDAY"

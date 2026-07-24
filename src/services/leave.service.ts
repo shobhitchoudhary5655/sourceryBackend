@@ -1,6 +1,6 @@
 import { Op } from 'sequelize';
 import { v4 as uuidv4 } from "uuid";
-import { User, Attendance, Holiday, Request } from '../models';
+import { User, Attendance, Holiday, Request, Role } from '../models';
 import { formatDate } from '../utils/dateHelper';
 import { ApplyRequestDTO, UpdateLeaveStatusDTO } from '../dtos/leave.dto';
 import { getWorkingDatesBetween, getWorkingDaysBetween, isWeeklyOff, } from '../utils/weeklyOff.helper';
@@ -14,7 +14,11 @@ class LeaveService {
         //     data.endDate
         // );
         const requestGroupId = uuidv4();
+        const employee = await User.findByPk(userId);
 
+        if (!employee) {
+            throw new Error("User not found.");
+        }
         const monthStart = new Date(data.startDate);
         monthStart.setDate(1);
 
@@ -144,6 +148,41 @@ class LeaveService {
             });
 
             requests.push(request);
+        }
+
+        const admins = await User.findAll({
+            include: [
+                {
+                    model: Role,
+                    as: "role",
+                    where: {
+                        name: "admin",
+                    },
+                },
+            ],
+        });
+
+        const firstRequest = requests[0];
+
+        if (!firstRequest) {
+            throw new Error("Request was not created.");
+        }
+
+        for (const admin of admins) {
+            await notificationService.sendToUser({
+                userId: admin.id,
+                title: "New Leave Request",
+                body:
+                    data.requestType === "leave"
+                        ? `${employee.name} applied for ${data.leaveType} Leave.`
+                        : `${employee.name} applied for Work From Home.`,
+                type: "LEAVE_REQUEST",
+                referenceId: firstRequest.id,
+                data: {
+                    requestId: String(firstRequest.id),
+                    employeeId: String(employee.id),
+                },
+            });
         }
 
         return {

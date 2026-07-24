@@ -4,6 +4,38 @@ import { AuthRequest } from "../types/auth.types";
 
 class NotificationController {
 
+  public saveFCMToken = async (req: AuthRequest, res: Response,) => {
+
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized"
+      });
+    }
+
+    const { token } = req.body;
+
+    const result = await notificationService.saveFCMToken(req.user.id, token);
+
+    return res.json(result);
+  };
+
+  public removeFCMToken = async (req: AuthRequest, res: Response,) => {
+
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized"
+      });
+    }
+
+    const { token } = req.body;
+
+    const result = await notificationService.removeFCMToken(req.user.id, token);
+
+    return res.json(result);
+  };
+
   public getMyNotifications = async (
     req: AuthRequest,
     res: Response,

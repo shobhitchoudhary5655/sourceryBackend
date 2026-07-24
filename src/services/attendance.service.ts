@@ -450,8 +450,21 @@ class AttendanceService {
         };
     };
 
-    public getOverallStatus = async (userId: number) => {
-        const attendance = await Attendance.findAll({ where: { userId } });
+    public getOverallStatus = async (userId: number, month: number, year: number,) => {
+        // const attendance = await Attendance.findAll({ where: { userId } });
+        const startDate = new Date(year, month - 1, 1);
+
+        const endDate = new Date(year, month, 0);
+        endDate.setHours(23, 59, 59, 999);
+
+        const attendance = await Attendance.findAll({
+            where: {
+                userId,
+                date: {
+                    [Op.between]: [startDate, endDate],
+                },
+            },
+        });
 
         let present = 0, absent = 0, leave = 0, wfh = 0;
 
@@ -481,10 +494,9 @@ class AttendanceService {
             }
         });
 
-        const total = present + absent + leave + wfh;
+        const totalAttendanceDays = present + absent + leave + wfh;
 
-        const percentage =
-            total > 0 ? ((present + wfh) / total) * 100 : 0;
+        const attendancePercentage = totalAttendanceDays > 0 ? (((present + wfh) / totalAttendanceDays) * 100).toFixed(2) : '0.00';
 
         return {
             success: true,
@@ -493,8 +505,8 @@ class AttendanceService {
                 absent,
                 leave,
                 wfh,
-                total,
-                attendancePercentage: percentage.toFixed(2),
+                totalAttendanceDays,
+                attendancePercentage,
             },
         };
     };

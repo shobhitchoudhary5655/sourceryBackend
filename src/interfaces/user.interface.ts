@@ -18,5 +18,5 @@ export interface IUser {
   clBalance?: number | null;
   slBalance?: number | null;
   graceBalance: number ;
-  fcmToken?: string | null;
+  fcmTokens?: string[];
 }

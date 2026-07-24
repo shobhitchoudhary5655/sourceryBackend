@@ -20,7 +20,7 @@ export interface UserCreationAttributes
     | 'clBalance'
     | 'slBalance'
     | 'graceBalance'
-    | 'fcmToken'
+    | 'fcmTokens'
   > { }
 
 class User
@@ -73,7 +73,7 @@ class User
 
   declare graceBalance: number;
 
-  declare fcmToken?: string | null;
+  declare fcmTokens?: string[];
 
   declare readonly createdAt: Date;
 
@@ -193,10 +193,10 @@ User.init(
       defaultValue: 240,
     },
 
-    fcmToken: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-      defaultValue: null,
+    fcmTokens: {
+      type: DataTypes.JSON,
+      allowNull: false,
+      defaultValue: [],
     },
   },
   {

@@ -4,26 +4,102 @@ import User from "../models/User";
 
 class NotificationService {
 
+  public saveFCMToken = async (userId: number, token: string,) => {
+    const user = await User.findByPk(userId);
+
+    if (!user) {
+      return {
+        success: false,
+        message: "User not found",
+      };
+    }
+
+    const tokens = user.fcmTokens || [];
+
+    if (!tokens.includes(token)) {
+      tokens.push(token);
+
+      await user.update({ fcmTokens: tokens, });
+    }
+
+    return {
+      success: true,
+    };
+  };
+
+  public removeFCMToken = async (
+    userId: number,
+    token: string,
+  ) => {
+
+    const user = await User.findByPk(userId);
+
+    if (!user) {
+      return {
+        success: false,
+      };
+    }
+
+    const tokens = user.fcmTokens || [];
+
+    await user.update({
+      fcmTokens: tokens.filter(
+        item => item !== token
+      ),
+    });
+
+    return {
+      success: true,
+    };
+  };
   async sendToUser({ userId, title, body, type, referenceId, data = {}, }: any) {
 
-        await NotificationDAO.create({ userId, title, body, type, referenceId, });
+     console.log("USER ID:", userId);
 
-        const user = await User.findByPk(userId);
+    await NotificationDAO.create({ userId, title, body, type, referenceId, });
 
-        if (!user?.fcmToken) {
-            return;
-        }
+    const user = await User.findByPk(userId);
 
-        await getMessaging().send({
-            token: user.fcmToken,
-            notification: {
-                title,
-                body,
-            },
-            data,
-        });
+    console.log(
+   "USER FCM TOKENS:",
+   user?.fcmTokens
+ );
+
+    if (!user) {
+      return;
     }
-    
+
+    const tokens = user.fcmTokens || [];
+
+    if (tokens.length === 0) {
+      return;
+    }
+
+    for (const token of tokens) {
+       console.log(
+    "SENDING FCM:",
+    token
+   );
+      try {
+        const result =await getMessaging().send({
+          token,
+          notification: {
+            title,
+            body,
+          },
+          data,
+        });
+        console.log(
+      "FCM SUCCESS:",
+      result
+    );
+
+      } catch (error) {
+        console.error("Failed to send notification:", error);
+      }
+    }
+  }
+
   public getMyNotifications = async (userId: number) => {
 
     const notifications =
