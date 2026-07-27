@@ -12,6 +12,7 @@ import adminDao from '../daos/admin.dao';
 import { CreateAttendanceDTO, UpdateAttendanceDTO } from "../dtos/attendance.dto";
 import notificationService from './notification.service';
 import { createUTCDateFromIST } from "../utils/dateHelper";
+import s3Service from './s3.service';
 
 class AdminService {
 
@@ -153,7 +154,20 @@ class AdminService {
       return { success: false, message: 'Employee not found' };
     }
 
-    return { success: true, employee };
+    let profilePicture = null;
+
+    if (employee.profileImage) {
+      profilePicture = await s3Service.getSignedUrl(
+        employee.profileImage
+      );
+    }
+
+    return {
+      success: true, employee: {
+        ...employee.toJSON(),
+        profilePicture
+      }
+    };
   };
 
   public editEmployeesDetails = async (id: string, body: any) => {
@@ -162,8 +176,32 @@ class AdminService {
     if (!employee) {
       return { success: false, message: 'User not found' };
     }
+    if (!body.password || body.password.trim() === "") {
+      delete body.password;
+    }
+    await employee.update({
+      name: body.name,
+      email: body.email,
+      phone: body.phone,
+      designation: body.designation,
+      roleId: body.roleId,
+      employeeId: body.employeeId,
+      gender: body.gender,
+      dateOfBirth: body.dateOfBirth,
+      joiningDate: body.joiningDate,
+      workLocation: body.workLocation,
+      employeeType: body.employeeType,
+      salary: body.salary,
+      status: body.status,
+      clBalance: body.clBalance,
+      slBalance: body.slBalance,
+    });
 
-    await employee.update(body);
+    if (body.password && body.password.trim() !== "") {
+      employee.password = await bcrypt.hash(body.password, 10);
+    }
+
+    await employee.save();
 
     return {
       success: true,
