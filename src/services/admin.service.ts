@@ -11,6 +11,7 @@ import { AttendanceStatus } from '../types/attendance.types';
 import adminDao from '../daos/admin.dao';
 import { CreateAttendanceDTO, UpdateAttendanceDTO } from "../dtos/attendance.dto";
 import notificationService from './notification.service';
+import { createUTCDateFromIST } from "../utils/dateHelper";
 
 class AdminService {
 
@@ -240,9 +241,9 @@ class AdminService {
       )
     ) {
 
-      checkIn = new Date(`${data.date}T${data.checkIn}:00`);
+      checkIn = createUTCDateFromIST(data.date, data.checkIn);
 
-      checkOut = new Date(`${data.date}T${data.checkOut}:00`);
+      checkOut = createUTCDateFromIST(data.date, data.checkOut);
 
       officeHours =
         (checkOut.getTime() - checkIn.getTime()) /
@@ -336,12 +337,20 @@ class AdminService {
     let checkOut = attendance.checkOut;
 
     if (data.checkIn) {
-      checkIn = new Date(`${attendance.date}T${data.checkIn}:00`);
+      checkIn = createUTCDateFromIST(
+        attendance.date,
+        data.checkIn
+      );
+
       attendance.checkIn = checkIn;
     }
 
     if (data.checkOut) {
-      checkOut = new Date(`${attendance.date}T${data.checkOut}:00`);
+      checkOut = createUTCDateFromIST(
+        attendance.date,
+        data.checkOut
+      );
+
       attendance.checkOut = checkOut;
     }
 
