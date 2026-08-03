@@ -25,6 +25,41 @@ class AttendanceController {
     return res.json(result);
   };
 
+  public pauseAttendance = async (req: AuthRequest, res: Response) => {
+    try {
+      const result = await attendanceService.pauseAttendance(req.user!.id);
+
+      if (!result.success) {
+        // return responseHandler.error(res, result.message);
+        res.status(500).json({ success: false, message: result.message });
+      }
+      // return responseHandler.success(res, result.message, result.attendance);
+      res.status(200).json({ success: true, message: result.message });
+    } catch (error: any) {
+      // return responseHandler.serverError(res, error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+
+  };
+
+  public resumeAttendance = async (req: AuthRequest, res: Response) => {
+    try {
+      const { latitude, longitude, } = req.body;
+      const result = await attendanceService.resumeAttendance(req.user!.id, latitude, longitude);
+
+      if (!result.success) {
+        // return responseHandler.error(res, result.message);
+        res.status(500).json({ success: false, message: result.message });
+      }
+      // return responseHandler.success(res, result.message, result.attendance);
+      res.status(200).json({ success: true, message: result.message });
+    } catch (error: any) {
+      // return responseHandler.serverError(res, error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+
+  };
+
   public getMyAttendance = async (req: AuthRequest, res: Response) => {
     const month = Number(req.query.month);
     const year = Number(req.query.year);
@@ -53,7 +88,7 @@ class AttendanceController {
   public getOverallStatus = async (req: AuthRequest, res: Response) => {
     const month = Number(req.query.month);
     const year = Number(req.query.year);
-    const result = await attendanceService.getOverallStatus(req.user!.id,month, year);
+    const result = await attendanceService.getOverallStatus(req.user!.id, month, year);
     return res.json(result);
   };
 

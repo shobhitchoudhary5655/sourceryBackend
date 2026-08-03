@@ -227,6 +227,23 @@ class AttendanceService {
             location: decodedLocation,
         } as any);
 
+        attendance.workSessions = [
+            {
+                type: inOffice ? "OFFICE" : "HOME",
+                startTime: new Date(),
+                endTime: null,
+                latitude,
+                longitude,
+                location: decodedLocation,
+            },
+        ];
+
+        attendance.isPaused = false;
+
+        attendance.currentWorkMode = inOffice ? "OFFICE" : "HOME";
+
+        await attendance.save();
+
         await notificationService.sendToUser({
             userId,
             title: "Punch In Successful",
@@ -234,18 +251,6 @@ class AttendanceService {
             type: "ATTENDANCE",
             referenceId: attendance.id,
         });
-
-        console.log("Office Latitude :", OFFICE.latitude);
-        console.log("Office Longitude:", OFFICE.longitude);
-
-        console.log("Employee Latitude :", latitude);
-        console.log("Employee Longitude:", longitude);
-
-        console.log("Distance:", distance);
-
-        console.log("Office Radius:", OFFICE_RADIUS);
-
-        console.log("In Office:", inOffice);
 
         return {
             success: true,
@@ -300,10 +305,32 @@ class AttendanceService {
 
         const now = new Date();
 
+        if (attendance.isPaused) {
+            return {
+                success: false,
+                message: "Please resume your work before punching out.",
+            };
+        }
+
+        const sessions = [...attendance.workSessions];
+
+        if (!sessions.length) {
+            return {
+                success: false,
+                message: "No work session found.",
+            };
+        }
+
+        const lastSession = sessions[sessions.length - 1];
+
+        if (!lastSession.endTime) {
+            lastSession.endTime = now;
+        }
+
+        attendance.workSessions = sessions;
+
         // Total office time (Punch In -> Punch Out)
-        const grossMinutes = Math.floor(
-            (now.getTime() - attendance.checkIn!.getTime()) / (1000 * 60)
-        );
+        const grossMinutes = Math.floor((now.getTime() - attendance.checkIn!.getTime()) / (1000 * 60));
 
         // Fetch today's breaks
         const breaks = await Break.findAll({
@@ -398,6 +425,210 @@ class AttendanceService {
         };
     };
 
+    public pauseAttendance = async (userId: number) => {
+
+        const today = getTodayDate();
+
+        const attendance = await Attendance.findOne({
+            where: {
+                userId,
+                date: today,
+            },
+        });
+
+        if (!attendance) {
+            return {
+                success: false,
+                message: "Please Punch In First",
+            };
+        }
+
+        if (attendance.checkOut) {
+            return {
+                success: false,
+                message: "Already Punched Out",
+            };
+        }
+
+        if (attendance.isPaused) {
+            return {
+                success: false,
+                message: "Attendance already paused",
+            };
+        }
+
+        const activeBreak = await Break.findOne({
+            where: {
+                attendanceId: attendance.id,
+                endTime: null,
+            },
+        });
+
+        if (activeBreak) {
+            return {
+                success: false,
+                message: "Please end your break before pausing work.",
+            };
+        }
+
+        const sessions = [...attendance.workSessions];
+
+        if (!sessions.length) {
+            return {
+                success: false,
+                message: "No active work session found.",
+            };
+        }
+
+        const lastSession = sessions[sessions.length - 1];
+
+        if (!lastSession) {
+            return {
+                success: false,
+                message: "No work session found.",
+            };
+        }
+
+        // Already paused
+        if (lastSession.endTime) {
+            return {
+                success: false,
+                message: "Current work session is already closed.",
+            };
+        }
+
+        // Close current session
+        lastSession.endTime = new Date().toISOString();
+
+        attendance.workSessions = sessions;
+        attendance.changed("workSessions", true);
+        attendance.isPaused = true;
+        await attendance.save();
+
+        await notificationService.sendToUser({
+            userId,
+            title: "Work Paused",
+            body: `Your work has been paused at ${new Date().toLocaleTimeString()}.`,
+            type: "ATTENDANCE",
+            referenceId: attendance.id,
+        });
+
+        return {
+            success: true,
+            message: "Attendance Paused Successfully",
+            attendance,
+        };
+    };
+
+    public resumeAttendance = async (
+        userId: number,
+        latitude: number,
+        longitude: number
+    ) => {
+
+        const today = getTodayDate();
+
+        const attendance = await Attendance.findOne({
+            where: {
+                userId,
+                date: today,
+            },
+        });
+
+        if (!attendance) {
+            return {
+                success: false,
+                message: "Please Punch In First",
+            };
+        }
+
+        if (attendance.checkOut) {
+            return {
+                success: false,
+                message: "Already Punched Out",
+            };
+        }
+
+        if (!attendance.isPaused) {
+            return {
+                success: false,
+                message: "Attendance is not paused",
+            };
+        }
+
+        const OFFICE = {
+            latitude: Number(process.env.OFFICE_LAT),
+            longitude: Number(process.env.OFFICE_LNG),
+        };
+
+        const OFFICE_RADIUS = Number(process.env.OFFICE_RADIUS);
+
+        const distance = getDistance(
+            OFFICE,
+            {
+                latitude,
+                longitude,
+            }
+        );
+
+        const inOffice = distance <= OFFICE_RADIUS;
+
+        const decodedLocation =
+            await getLocationName(
+                latitude,
+                longitude
+            );
+
+        const sessions = [...attendance.workSessions];
+
+        sessions.push({
+            type: inOffice ? "OFFICE" : "HOME",
+            startTime: new Date().toISOString(),
+            endTime: null,
+            latitude,
+            longitude,
+            location: decodedLocation,
+        });
+
+        attendance.workSessions = sessions;
+        attendance.changed("workSessions", true);
+
+        attendance.isPaused = false;
+
+        attendance.workSessions = sessions;
+
+        attendance.isPaused = false;
+
+        attendance.currentWorkMode =
+            inOffice
+                ? "OFFICE"
+                : "HOME";
+
+        attendance.inOffice = inOffice;
+
+        attendance.latitude = latitude;
+
+        attendance.longitude = longitude;
+
+        attendance.location = decodedLocation;
+
+        await attendance.save();
+
+        await notificationService.sendToUser({
+            userId,
+            title: "Work Resumed",
+            body: `Your work resumed at ${new Date().toLocaleTimeString()}.`,
+            type: "ATTENDANCE",
+            referenceId: attendance.id,
+        });
+
+        return {
+            success: true,
+            message: "Attendance Resumed Successfully",
+            attendance,
+        };
+    };
+
     public getMyAttendance = async (userId: number, month: number, year: number) => {
         const numericMonth = Number(month);
         const numericYear = Number(year);
@@ -417,8 +648,6 @@ class AttendanceService {
 
         const startDateString = formatDate(startDate);
         const endDateString = formatDate(endDate);
-
-        console.log('Attendance filter:', { userId, month: numericMonth, year: numericYear, startDateString, endDateString, });
 
         const attendance = await Attendance.findAll({
             where: {

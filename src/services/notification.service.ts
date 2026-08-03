@@ -54,16 +54,9 @@ class NotificationService {
   };
   async sendToUser({ userId, title, body, type, referenceId, data = {}, }: any) {
 
-     console.log("USER ID:", userId);
-
     await NotificationDAO.create({ userId, title, body, type, referenceId, });
 
     const user = await User.findByPk(userId);
-
-    console.log(
-   "USER FCM TOKENS:",
-   user?.fcmTokens
- );
 
     if (!user) {
       return;
@@ -76,10 +69,6 @@ class NotificationService {
     }
 
     for (const token of tokens) {
-       console.log(
-    "SENDING FCM:",
-    token
-   );
       try {
         const result =await getMessaging().send({
           token,
@@ -89,10 +78,6 @@ class NotificationService {
           },
           data,
         });
-        console.log(
-      "FCM SUCCESS:",
-      result
-    );
 
       } catch (error) {
         console.error("Failed to send notification:", error);

@@ -23,6 +23,11 @@ export interface IAttendance {
   latitude: number;
   longitude: number;
   inOffice: boolean;
+  workSessions: IWorkSession[];
+  isPaused: boolean;
+  currentWorkMode:
+  | 'OFFICE'
+  | 'HOME';
 }
 
 export interface AttendanceCreation {
@@ -30,4 +35,13 @@ export interface AttendanceCreation {
   date: string;
   checkIn: Date;
   status: string;
+}
+
+export interface IWorkSession {
+    type: "OFFICE" | "HOME";
+    startTime: Date | string;
+    endTime: Date | string | null;
+    latitude: number;
+    longitude: number;
+    location: string;
 }
