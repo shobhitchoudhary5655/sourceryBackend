@@ -17,6 +17,10 @@ export interface AttendanceCreationAttributes
     | 'latitude'
     | 'longitude'
     | 'inOffice'
+    | 'checkOutLatitude'
+    | 'checkOutLongitude'
+    | 'checkOutLocation'
+    | 'checkOutInOffice'
     | 'workSessions'
     | 'isPaused'
     | 'currentWorkMode'
@@ -53,6 +57,10 @@ class Attendance
   declare latitude: number;
   declare longitude: number;
   declare inOffice: boolean;
+  declare checkOutLatitude?: number;
+  declare checkOutLongitude?: number;
+  declare checkOutLocation?: string;
+  declare checkOutInOffice?: boolean;
   declare workSessions: IWorkSession[];
   declare isPaused: boolean;
   declare currentWorkMode:
@@ -145,6 +153,26 @@ Attendance.init(
     inOffice: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,
+    },
+
+    checkOutLatitude: {
+      type: DataTypes.DECIMAL(10, 8),
+      allowNull: true,
+    },
+
+    checkOutLongitude: {
+      type: DataTypes.DECIMAL(11, 8),
+      allowNull: true,
+    },
+
+    checkOutLocation: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+
+    checkOutInOffice: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
     },
 
     workSessions: {

@@ -166,7 +166,7 @@ class SalaryService {
             }
 
             // Keep required minutes as normal working days
-            const expectedWorkingDays = workingDays;
+            const expectedWorkingDays = workingDays - paidLeaveDays;
 
             const requiredMinutes = Math.max(0, expectedWorkingDays) * 8 * 60;
             let shortageMinutes =

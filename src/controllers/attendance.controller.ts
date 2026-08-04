@@ -21,7 +21,8 @@ class AttendanceController {
   };
 
   public punchOut = async (req: AuthRequest, res: Response) => {
-    const result = await attendanceService.punchOut(req.user!.id);
+    const { latitude, longitude } = req.body;
+    const result = await attendanceService.punchOut(req.user!.id, latitude, longitude);
     return res.json(result);
   };
 
