@@ -34,8 +34,6 @@ class LeaveController {
 
       return res.status(200).json(result);
     } catch (error: any) {
-      console.error('GET LEAVE REQUEST ERROR:', error);
-
       return res.status(500).json({
         success: false,
         message: error?.message || 'Internal Server Error',

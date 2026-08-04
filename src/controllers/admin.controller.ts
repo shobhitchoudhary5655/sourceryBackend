@@ -12,7 +12,6 @@ class AdminController {
         ...result,
       });
     } catch (error: any) {
-      console.error('GET EMPLOYEES ERROR:', error);
       return res.status(500).json({
         success: false,
         message: error?.message || 'Internal Server Error',
@@ -143,8 +142,6 @@ class AdminController {
 
   public getAttendanceById = async (req: Request, res: Response) => {
     try {
-      console.log("req.params.id =", req.params.id);
-      console.log("Number(req.params.id) =", Number(req.params.id));
       const attendance = await adminService.getAttendanceById(
         Number(req.params.id)
       );

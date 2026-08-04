@@ -27,6 +27,18 @@ class EmployeeRoutes {
       AttendanceController.punchOut
     );
 
+    this.router.post(
+      "/pause",
+      authMiddleware.verifyToken,
+      AttendanceController.pauseAttendance
+    );
+
+    this.router.post(
+      "/resume",
+      authMiddleware.verifyToken,
+      AttendanceController.resumeAttendance
+    );
+
     this.router.get(
       '/my-attendance',
       authMiddleware.verifyToken,

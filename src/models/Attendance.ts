@@ -1,6 +1,6 @@
 import { DataTypes, Model, Optional, } from 'sequelize';
 import sequelize from '../config/database';
-import { IAttendance, } from '../interfaces/attendance.interface';
+import { IAttendance, IWorkSession, } from '../interfaces/attendance.interface';
 
 export interface AttendanceCreationAttributes
   extends Optional<
@@ -17,6 +17,9 @@ export interface AttendanceCreationAttributes
     | 'latitude'
     | 'longitude'
     | 'inOffice'
+    | 'workSessions'
+    | 'isPaused'
+    | 'currentWorkMode'
   > { }
 
 class Attendance
@@ -50,6 +53,11 @@ class Attendance
   declare latitude: number;
   declare longitude: number;
   declare inOffice: boolean;
+  declare workSessions: IWorkSession[];
+  declare isPaused: boolean;
+  declare currentWorkMode:
+    | 'OFFICE'
+    | 'HOME';
 }
 
 Attendance.init(
@@ -137,6 +145,22 @@ Attendance.init(
     inOffice: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,
+    },
+
+    workSessions: {
+      type: DataTypes.JSON,
+      allowNull: false,
+      defaultValue: [],
+    },
+
+    isPaused: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+
+    currentWorkMode: {
+      type: DataTypes.ENUM("OFFICE", "HOME"),
+      defaultValue: "OFFICE",
     },
   },
   {

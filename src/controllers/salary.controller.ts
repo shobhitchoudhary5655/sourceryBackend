@@ -9,7 +9,6 @@ class SalaryController {
             const result = await salaryService.getSalaryList(req.query);
             return res.status(200).json({ success: true, ...result, });
         } catch (error: any) {
-            console.error('GET SALARY ERROR', error);
             return res.status(500).json({ success: false, message: error.message || 'Internal Server Error', });
         }
     };
@@ -100,10 +99,6 @@ class SalaryController {
             );
 
         } catch (error: any) {
-
-            console.log("Salary Slip Error:", error);
-
-
             if (!res.headersSent) {
 
                 return res.status(400).json({

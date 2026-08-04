@@ -1,12 +1,13 @@
 import { Response } from "express";
 import { Op } from 'sequelize';
 import salaryDAO from '../daos/salary.dao';
-import { SalaryPayment } from "../models";
+import { Break, SalaryPayment } from "../models";
 import { User, Request, Attendance } from '../models';
 import { getWorkingDays, getWorkingDaysBetween, isWeeklyOff } from '../utils/weeklyOff.helper';
 import { formatDate } from '../utils/dateHelper';
 import { generateSalarySlip } from "../utils/pdf/salarySlip.generator";
 import notificationService from "./notification.service";
+import { calculateWorkSessionMinutes } from "../utils/workSessionHelper";
 
 class SalaryService {
 
@@ -70,22 +71,36 @@ class SalaryService {
                     userId: employee.id,
                     requestType: "leave",
                     status: "approved",
-                    lopDays: { [Op.gt]: 0, },
-                    startDate: { [Op.lte]: formatDate(monthEnd), },
-                    endDate: { [Op.gte]: formatDate(monthStart), },
+                    startDate: {
+                        [Op.lte]: formatDate(monthEnd),
+                    },
+                    endDate: {
+                        [Op.gte]: formatDate(monthStart),
+                    },
                 },
             });
 
             let totalLopDays = 0;
+            let paidLeaveDays = 0;
 
             for (const leave of leaveRequests) {
-                totalLopDays += Number(leave.lopDays || 0);
+
+                const totalLeaveDays = this.getTotalLeaveDays(
+                    leave.startDate,
+                    leave.endDate
+                );
+
+                const lopDays = Number(leave.lopDays || 0);
+
+                totalLopDays += lopDays;
+
+                paidLeaveDays += totalLeaveDays - lopDays;
             }
 
-            const attendances = await Attendance.findAll({
+            const absentDays = await Attendance.count({
                 where: {
                     userId: employee.id,
-                    status: "present",
+                    status: "absent",
                     date: {
                         [Op.between]: [
                             formatDate(monthStart),
@@ -95,71 +110,148 @@ class SalaryService {
                 },
             });
 
+            const attendances = await Attendance.findAll({
+                where: {
+                    userId: employee.id,
+                    date: {
+                        [Op.between]: [
+                            formatDate(monthStart),
+                            formatDate(monthEnd),
+                        ],
+                    },
+                },
+            });
+            let totalWorkedMinutes = 0;
+
+            for (const attendance of attendances) {
+
+                if (attendance.status === "leave") {
+                    totalWorkedMinutes += 480;
+                    continue;
+                }
+
+                if (attendance.status !== "present" && attendance.status !== "halfday") {
+                    continue;
+                }
+
+                // Calculate actual worked minutes from work sessions
+                let workedMinutes = 0;
+
+                if (attendance.workSessions && attendance.workSessions.length > 0) {
+                    workedMinutes = calculateWorkSessionMinutes(attendance.workSessions);
+                } else {
+                    workedMinutes = Math.round(Number(attendance.officeHours || 0) * 60);
+                }
+
+                // Fetch today's breaks
+                const breaks = await Break.findAll({
+                    where: {
+                        attendanceId: attendance.id,
+                    },
+                });
+
+                const totalBreakMinutes = breaks.reduce((sum, item) => sum + Number(item.durationMinutes || 0), 0);
+
+                const FREE_LUNCH_MINUTES = Number(process.env.FREE_LUNCH_MINUTES || 30);
+                const extraBreakMinutes = Math.max(0, totalBreakMinutes - FREE_LUNCH_MINUTES);
+
+                // Deduct only extra break minutes
+                workedMinutes -= extraBreakMinutes;
+
+                if (workedMinutes < 0) {
+                    workedMinutes = 0;
+                }
+
+                totalWorkedMinutes += workedMinutes;
+            }
+
+            // Keep required minutes as normal working days
+            const expectedWorkingDays = workingDays;
+
+            const requiredMinutes = Math.max(0, expectedWorkingDays) * 8 * 60;
+            let shortageMinutes =
+                requiredMinutes - totalWorkedMinutes;
+
+            const graceMinutes = Number(employee.graceBalance || 0);
+            if (shortageMinutes < 0) {
+                shortageMinutes = 0;
+            }
+
+            const perMinuteSalary = baseSalary / (workingDays * 8 * 60);
             let wfhDeductionDays = 0;
             let hasPendingWFH = false;
 
             for (const attendance of attendances) {
 
-                // Employee worked from office
+                if (attendance.status !== "present" && attendance.status !== "halfday"
+                ) {
+                    continue;
+                }
+
                 if (attendance.inOffice) {
                     continue;
                 }
 
                 // Employee worked outside office
-                const request = await Request.findOne({
+                const requests = await Request.findAll({
                     where: {
                         userId: employee.id,
                         requestType: "wfh",
-                        startDate: attendance.date,
-                        endDate: attendance.date,
-                        status: { [Op.ne]: "cancelled", },
+                        startDate: {
+                            [Op.lte]: attendance.date,
+                        },
+                        endDate: {
+                            [Op.gte]: attendance.date,
+                        },
+                        status: {
+                            [Op.ne]: "cancelled",
+                        },
                     },
                 });
 
                 // No WFH request
-                if (!request) {
-
-                    // Company policy
-                    // Outside office without permission
+                if (requests.length === 0) {
                     wfhDeductionDays += 1;
-
                     continue;
                 }
 
-                switch (request.status) {
-
-                    case "approved":
-                        break;
-
-                    case "pending":
-                        hasPendingWFH = true;
-                        break;
-
-                    case "rejected":
-                        wfhDeductionDays += 0.5;
-                        break;
+                for (const request of requests) {
+                    switch (request.status) {
+                        case "approved":
+                            break;
+                        case "pending":
+                            hasPendingWFH = true;
+                            break;
+                        case "rejected":
+                            wfhDeductionDays += 0.5;
+                            break;
+                    }
                 }
             }
 
             if (hasPendingWFH) {
-
                 skipped++;
-
                 continue;
             }
+            const graceUsed = Math.min(shortageMinutes, graceMinutes);
+            shortageMinutes -= graceUsed;
+            employee.graceBalance = graceMinutes - graceUsed;
+            await employee.save();
 
-            const absentDays = await Attendance.count({
-                where: {
-                    userId: employee.id,
-                    status: "absent",
-                    date: {
-                        [Op.between]: [formatDate(monthStart), formatDate(monthEnd)]
-                    }
-                }
-            });
+            const officeHourDeduction = shortageMinutes * perMinuteSalary;
 
-            const totalDeductionDays = totalLopDays + wfhDeductionDays + absentDays;
-            const deductionAmount = Number((totalDeductionDays * perDaySalary).toFixed(2));
+            const lopDeduction = totalLopDays * perDaySalary;
+            const absentDeduction = absentDays * perDaySalary;
+            const wfhDeduction = wfhDeductionDays * perDaySalary;
+
+            const deductionAmount = Number(
+                (
+                    officeHourDeduction +
+                    lopDeduction +
+                    absentDeduction +
+                    wfhDeduction
+                ).toFixed(2)
+            );
 
             const finalSalary = Number(Math.max(0, baseSalary - deductionAmount).toFixed(2));
 
@@ -174,8 +266,12 @@ class SalaryService {
                 salary: finalSalary,
                 status: "Pending",
                 paidDate: null,
+                workedMinutes: totalWorkedMinutes,
+                requiredMinutes,
+                graceUsed,
+                officeHourDeduction,
+                absentDays,
             });
-
             generated++;
         }
 
@@ -195,6 +291,22 @@ class SalaryService {
             skipped,
         };
     };
+
+    private getTotalLeaveDays(
+        startDate: string,
+        endDate: string
+    ): number {
+
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+
+        const diff =
+            end.getTime() - start.getTime();
+
+        return Math.floor(
+            diff / (1000 * 60 * 60 * 24)
+        ) + 1;
+    }
 
     public markSalaryPaid = async (id: number) => {
 
