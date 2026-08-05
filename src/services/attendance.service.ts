@@ -346,76 +346,23 @@ class AttendanceService {
 
         // Company policy
         const REQUIRED_MINUTES = Number(process.env.WORKING_HOURS || 8) * 60;
-
         const FREE_LUNCH_MINUTES = Number(process.env.FREE_LUNCH_MINUTES || 30);
 
         // Actual work done
         const workingMinutes = grossMinutes - totalBreakMinutes;
 
         // Deduct only lunch beyond 30 minutes
-        const extraBreakMinutes = Math.max(
-            0,
-            totalBreakMinutes - FREE_LUNCH_MINUTES
-        );
+        const extraBreakMinutes = Math.max(0, totalBreakMinutes - FREE_LUNCH_MINUTES);
 
-        // Effective office time for attendance calculation
         const effectiveMinutes = grossMinutes - extraBreakMinutes;
 
-        // Save attendance
         attendance.checkOut = now;
-
-        attendance.officeHours = Number(
-            (grossMinutes / 60).toFixed(2)
-        );
-
-        attendance.workingHours = Number(
-            (workingMinutes / 60).toFixed(2)
-        );
-
-        attendance.effectiveHours = Number(
-            (effectiveMinutes / 60).toFixed(2)
-        );
-
+        attendance.officeHours = Number((grossMinutes / 60).toFixed(2));
+        attendance.workingHours = Number((workingMinutes / 60).toFixed(2));
+        attendance.effectiveHours = Number((effectiveMinutes / 60).toFixed(2));
         attendance.breakMinutes = totalBreakMinutes;
+        const shortage = Math.max(0, REQUIRED_MINUTES - effectiveMinutes);
 
-        // Grace calculation
-        // const shortage = Math.max(
-        //     0,
-        //     REQUIRED_MINUTES - effectiveMinutes
-        // );
-
-        // if (shortage === 0) {
-        //     attendance.status = "present";
-        // } else {
-        //     if (user.graceBalance >= shortage) {
-        //         user.graceBalance -= shortage;
-        //         attendance.status = "present";
-        //         await user.save();
-        //         await notificationService.sendToUser({
-        //             userId,
-        //             title: "Grace Time Used",
-        //             body: `${shortage} minutes have been deducted from your grace balance.`,
-        //             type: "ATTENDANCE",
-        //         });
-        //     } else {
-        //         attendance.status = "halfday";
-        //         await notificationService.sendToUser({
-        //             userId,
-        //             title: "Half Day Marked",
-        //             body: "You have been marked as Half Day because your effective working hours were insufficient.",
-        //             type: "ATTENDANCE",
-        //             referenceId: attendance.id,
-        //         });
-        //     }
-        // }
-
-        const shortage = Math.max(
-            0,
-            REQUIRED_MINUTES - effectiveMinutes
-        );
-
-        // Store the shortage for salary generation (recommended)
-        // attendance.graceMinutes = shortage;
         const OFFICE = {
             latitude: Number(process.env.OFFICE_LAT),
             longitude: Number(process.env.OFFICE_LNG),
@@ -423,20 +370,10 @@ class AttendanceService {
 
         const OFFICE_RADIUS = Number(process.env.OFFICE_RADIUS);
         attendance.status = shortage === 0 ? "present" : "present";
-        const distance = getDistance(
-            OFFICE,
-            {
-                latitude,
-                longitude,
-            }
-        );
+        const distance = getDistance(OFFICE, { latitude, longitude, });
 
         const inOffice = distance <= OFFICE_RADIUS;
-
-        const decodedLocation = await getLocationName(
-            latitude,
-            longitude
-        );
+        const decodedLocation = await getLocationName(latitude, longitude);
 
         attendance.checkOutLatitude = latitude;
         attendance.checkOutLongitude = longitude;
@@ -553,14 +490,8 @@ class AttendanceService {
         };
     };
 
-    public resumeAttendance = async (
-        userId: number,
-        latitude: number,
-        longitude: number
-    ) => {
-
+    public resumeAttendance = async (userId: number, latitude: number, longitude: number) => {
         const today = getTodayDate();
-
         const attendance = await Attendance.findOne({
             where: {
                 userId,
@@ -625,26 +556,10 @@ class AttendanceService {
 
         attendance.workSessions = sessions;
         attendance.changed("workSessions", true);
-
         attendance.isPaused = false;
-
         attendance.workSessions = sessions;
-
         attendance.isPaused = false;
-
-        attendance.currentWorkMode =
-            inOffice
-                ? "OFFICE"
-                : "HOME";
-
-        attendance.inOffice = inOffice;
-
-        attendance.latitude = latitude;
-
-        attendance.longitude = longitude;
-
-        attendance.location = decodedLocation;
-
+        attendance.currentWorkMode = inOffice ? "OFFICE" : "HOME";
         await attendance.save();
 
         await notificationService.sendToUser({
