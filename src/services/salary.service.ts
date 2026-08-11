@@ -2,7 +2,7 @@ import { Response } from "express";
 import { Op } from 'sequelize';
 import salaryDAO from '../daos/salary.dao';
 import { Break, SalaryPayment } from "../models";
-import { User, Request, Attendance } from '../models';
+import { User, Request, Attendance, Holiday, HolidayUser, } from '../models';
 import { getWorkingDays, getWorkingDaysBetween, isWeeklyOff } from '../utils/weeklyOff.helper';
 import { formatDate } from '../utils/dateHelper';
 import { generateSalarySlip } from "../utils/pdf/salarySlip.generator";
@@ -125,37 +125,105 @@ class SalaryService {
 
             for (const attendance of attendances) {
 
-                if (attendance.status === "leave") {
+                const holiday = await Holiday.findOne({
+                    where: {
+                        date: attendance.date,
+                    },
+                });
+
+                let isAssignedHoliday = false;
+                let isAssignedWFH = false;
+
+                if (holiday) {
+
+                    if (holiday.holidayType === "PUBLIC") {
+
+                        isAssignedHoliday = true;
+
+                    } else {
+
+                        const mapping = await HolidayUser.findOne({
+                            where: {
+                                holidayId: holiday.id,
+                                userId: employee.id,
+                            },
+                        });
+
+                        if (mapping) {
+
+                            if (holiday.holidayType === "SPECIAL_HOLIDAY") {
+                                isAssignedHoliday = true;
+                            }
+
+                            if (holiday.holidayType === "SPECIAL_WFH") {
+                                isAssignedWFH = true;
+                            }
+                        }
+                    }
+                }
+
+                if (
+                    isAssignedHoliday ||
+                    isAssignedWFH
+                ) {
+
                     totalWorkedMinutes += 480;
                     continue;
                 }
 
-                if (attendance.status !== "present" && attendance.status !== "halfday") {
+                if (attendance.status === "leave") {
+
+                    totalWorkedMinutes += 480;
                     continue;
                 }
 
-                // Calculate actual worked minutes from work sessions
-                let workedMinutes = 0;
-
-                if (attendance.workSessions && attendance.workSessions.length > 0) {
-                    workedMinutes = calculateWorkSessionMinutes(attendance.workSessions);
-                } else {
-                    workedMinutes = Math.round(Number(attendance.officeHours || 0) * 60);
+                if (
+                    attendance.status !== "present" &&
+                    attendance.status !== "halfday"
+                ) {
+                    continue;
                 }
 
-                // Fetch today's breaks
+                let workedMinutes = 0;
+
+                if (
+                    attendance.workSessions &&
+                    attendance.workSessions.length > 0
+                ) {
+
+                    workedMinutes =
+                        calculateWorkSessionMinutes(
+                            attendance.workSessions
+                        );
+
+                } else {
+
+                    workedMinutes =
+                        Math.round(
+                            Number(attendance.officeHours || 0) * 60
+                        );
+                }
+
                 const breaks = await Break.findAll({
                     where: {
                         attendanceId: attendance.id,
                     },
                 });
 
-                const totalBreakMinutes = breaks.reduce((sum, item) => sum + Number(item.durationMinutes || 0), 0);
+                const totalBreakMinutes = breaks.reduce(
+                    (sum, item) => sum + Number(item.durationMinutes || 0),
+                    0
+                );
 
-                const FREE_LUNCH_MINUTES = Number(process.env.FREE_LUNCH_MINUTES || 30);
-                const extraBreakMinutes = Math.max(0, totalBreakMinutes - FREE_LUNCH_MINUTES);
+                const FREE_LUNCH_MINUTES =
+                    Number(process.env.FREE_LUNCH_MINUTES || 30);
 
-                // Deduct only extra break minutes
+                const extraBreakMinutes =
+                    Math.max(
+                        0,
+                        totalBreakMinutes - FREE_LUNCH_MINUTES
+                    );
+
                 workedMinutes -= extraBreakMinutes;
 
                 if (workedMinutes < 0) {
@@ -164,8 +232,6 @@ class SalaryService {
 
                 totalWorkedMinutes += workedMinutes;
             }
-
-            // Keep required minutes as normal working days
             const expectedWorkingDays = workingDays - paidLeaveDays;
 
             const requiredMinutes = Math.max(0, expectedWorkingDays) * 8 * 60;
@@ -188,8 +254,37 @@ class SalaryService {
                     continue;
                 }
 
+                // if (attendance.inOffice) {
+                //     continue;
+                // }
+
                 if (attendance.inOffice) {
                     continue;
+                }
+
+                const holiday = await Holiday.findOne({
+                    where: { date: attendance.date, },
+                });
+
+                if (holiday) {
+
+                    if (holiday.holidayType === "PUBLIC") {
+                        continue;
+                    }
+
+                    if (holiday.holidayType === "SPECIAL_WFH") {
+
+                        const mapping = await HolidayUser.findOne({
+                            where: {
+                                holidayId: holiday.id,
+                                userId: employee.id,
+                            },
+                        });
+
+                        if (mapping) {
+                            continue;
+                        }
+                    }
                 }
 
                 // Employee worked outside office

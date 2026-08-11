@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { AuthRequest } from "../types/auth.types";
 import holidayService from '../services/holiday.service';
 
 class HolidayController {
@@ -15,11 +16,13 @@ class HolidayController {
     }
   };
 
-  public addHoliday = async (req: Request, res: Response) => {
+  public addHoliday = async (req: AuthRequest, res: Response) => {
     try {
-      const result = await holidayService.addHoliday(req.body);
+      // const result = await holidayService.addHoliday(req.body);
+      const result = await holidayService.addHoliday(req.user!.id, req.body);
       return res.status(201).json(result);
     } catch (error: any) {
+      console.log(error);
       return res.status(500).json({
         success: false,
         message: error.message,
