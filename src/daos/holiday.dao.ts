@@ -6,6 +6,7 @@ class HolidayDao {
     data: {
       holidayName: string;
       date: string;
+      holidayType: "PUBLIC",
     }
   ) {
     return Holiday.create(data);
