@@ -1,33 +1,23 @@
-import {
-  DataTypes,
-  Model,
-  Optional,
-} from 'sequelize';
-
+import { DataTypes, Model, Optional, } from 'sequelize';
 import sequelize from '../config/database';
-
-import {
-  IHoliday,
-} from '../interfaces/holiday.interface';
-
+import HolidayUser from "./HolidayUser";
+import { IHoliday, } from '../interfaces/holiday.interface';
 interface HolidayCreationAttributes
-  extends Optional<IHoliday, 'id'> {}
+  extends Optional<IHoliday, 'id'> { }
 
 class Holiday
   extends Model<
     IHoliday,
     HolidayCreationAttributes
   >
-  implements IHoliday
-{
+  implements IHoliday {
   declare id: number;
-
   declare holidayName: string;
-
   declare date: string;
-
+  declare holidayType: 'PUBLIC' | 'SPECIAL_HOLIDAY' | 'SPECIAL_WFH';
+  declare description?: string | undefined;
+  declare employees?: HolidayUser[];
   declare readonly createdAt: Date;
-
   declare readonly updatedAt: Date;
 }
 
@@ -47,8 +37,28 @@ Holiday.init(
     date: {
       type: DataTypes.DATEONLY,
       allowNull: false,
-      unique: true,
+      // unique: true,
     },
+
+    holidayType: {
+      type: DataTypes.ENUM(
+        "PUBLIC",
+        "SPECIAL_HOLIDAY",
+        "SPECIAL_WFH"
+      ),
+      defaultValue: "PUBLIC",
+    },
+
+    description: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+
+    createdBy: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+
   },
   {
     sequelize,

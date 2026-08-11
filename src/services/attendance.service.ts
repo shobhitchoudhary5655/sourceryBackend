@@ -1,5 +1,5 @@
 import { Op } from 'sequelize';
-import { Attendance, User, Request, Holiday, Break } from '../models';
+import { Attendance, User, Request, Holiday, Break, HolidayUser } from '../models';
 import { getTodayDate, formatDate } from '../utils/dateHelper';
 import { AttendanceItem, AttendanceStatus } from '../types/attendance.types';
 import { isWeeklyOff, getWeeklyOffDates, } from '../utils/weeklyOff.helper';
@@ -14,20 +14,6 @@ class AttendanceService {
         const user = await User.findByPk(userId, {
             attributes: ["clBalance", "slBalance", "graceBalance"],
         });
-
-        // const dayName = new Date(today).toLocaleDateString('en-US', {
-        //     weekday: 'long',
-        // });
-
-        // const weeklyOff = await WeeklyOff.findOne({ where: { dayName } });
-
-        // if (weeklyOff) {
-        //     return {
-        //         success: true,
-        //         status: 'week_off',
-        //         message: 'Today is Weekly Off',
-        //     };
-        // }
         if (isWeeklyOff(new Date(today))) {
             return {
                 success: true,
@@ -99,18 +85,35 @@ class AttendanceService {
 
     public punchIn = async (userId: number, latitude: number, longitude: number) => {
         const today = getTodayDate();
+        const existing = await Attendance.findOne({
+            where: { userId, date: today },
+        });
 
-        // if (isWeeklyOff(new Date(today))) {
-        //     return {
-        //         success: false,
-        //         message: 'Today is Weekly Off',
-        //     };
-        // }
+        if (existing) {
+            return { success: false, message: 'Already Punched In Today' };
+        }
 
-        if (
-            latitude === undefined ||
-            longitude === undefined
-        ) {
+        const holiday = await Holiday.findOne({
+            where: { date: today, },
+            include: [{
+                model: HolidayUser,
+                as: "employees",
+                required: false,
+            },],
+        });
+        let assignedHoliday = false;
+        if (holiday) {
+            if (holiday.holidayType === "PUBLIC") {
+                assignedHoliday = true;
+            } else {
+                assignedHoliday = holiday.employees!.some(
+                    (item: any) => item.userId === userId
+                );
+            }
+
+        }
+
+        if (latitude === undefined || longitude === undefined) {
             return {
                 success: false,
                 message: "Location is required."
@@ -123,7 +126,22 @@ class AttendanceService {
         };
 
         const OFFICE_RADIUS = Number(process.env.OFFICE_RADIUS);
+        if (holiday && (holiday.holidayType === "PUBLIC" || (holiday.holidayType === "SPECIAL_HOLIDAY" && assignedHoliday))) {
+            await Attendance.create({
+                userId,
+                date: today,
+                status: "holiday",
+                latitude: latitude,
+                longitude: longitude,
+                inOffice: false,
+                notes: holiday.holidayName,
+            });
+            return {
+                success: true,
+                message: "Today is a Holiday.",
+            };
 
+        }
         const approvedLeave = await Request.findOne({
             where: {
                 userId,
@@ -137,113 +155,52 @@ class AttendanceService {
         if (approvedLeave) {
             return {
                 success: false,
-                message:
-                    'You are on approved leave',
+                message: 'You are on approved leave',
             };
         }
 
-        // const leave = await Request.findOne({
-        //     where: {
-        //         userId,
-        //         requestType: 'leave',
-        //         status: 'approved',
-        //         startDate: { [Op.lte]: today },
-        //         endDate: { [Op.gte]: today },
-        //     },
-        // });
+        let inOffice = true;
+        let currentMode: "OFFICE" | "HOME" = "OFFICE";
 
-        // if (leave) {
-        //     return { success: false, message: 'You are on Leave Today' };
-        // }
-
-        const existing = await Attendance.findOne({
-            where: { userId, date: today },
-        });
-
-        if (existing) {
-            return { success: false, message: 'Already Punched In Today' };
+        if (holiday && holiday.holidayType === "SPECIAL_WFH" && assignedHoliday) {
+            inOffice = false;
+            currentMode = "HOME";
+        } else {
+            const distance = getDistance(OFFICE, { latitude, longitude, });
+            inOffice = distance <= OFFICE_RADIUS;
+            // if (!inOffice) {
+            //     return {
+            //         success: false,
+            //         message: "You are outside office location.",
+            //     };
+            // }
         }
 
-        // const approvedWFH =
-        //     await Request.findOne({
-        //         where: {
-        //             userId,
-        //             requestType: 'wfh',
-        //             status: 'approved',
-        //             startDate: { [Op.lte]: today, },
-        //             endDate: { [Op.gte]: today, },
-        //         },
-        //     });
-
-        // if (!approvedWFH) {
-
-        //     const distance = getDistance(
-        //         OFFICE,
-        //         {
-        //             latitude: Number(latitude),
-        //             longitude: Number(longitude),
-        //         }
-        //     );
-
-        //     console.log('Office:', OFFICE);
-        //     console.log('User:', { latitude, longitude });
-        //     console.log('Distance:', distance);
-        //     console.log('Radius:', OFFICE_RADIUS);
-
-        //     if (distance > OFFICE_RADIUS) {
-        //         return {
-        //             success: false,
-        //             message:
-        //                 "You are outside the office location."
-        //         };
-        //     }
-
-        // }
-        const distance = getDistance(
-            OFFICE,
-            {
-                latitude,
-                longitude,
-            }
-        );
-
-        const inOffice = distance <= OFFICE_RADIUS;
-        const decodedLocation =
-            await getLocationName(
-                latitude,
-                longitude
-            );
-
-        // const attendanceStatus = approvedWFH ? 'wfh' : 'present';
+        const decodedLocation = await getLocationName(latitude, longitude);
 
         const attendance = await Attendance.create({
             userId,
             date: today,
             checkIn: new Date(),
-            status: "present",
+            status: currentMode === "HOME" ? "work-from-home" : "present",
             latitude,
             longitude,
             inOffice,
             location: decodedLocation,
         } as any);
 
-        attendance.workSessions = [
-            {
-                type: inOffice ? "OFFICE" : "HOME",
-                startTime: new Date(),
-                endTime: null,
-                latitude,
-                longitude,
-                location: decodedLocation,
-            },
-        ];
+        attendance.workSessions = [{
+            type: currentMode,
+            startTime: new Date(),
+            endTime: null,
+            latitude,
+            longitude,
+            location: decodedLocation,
+        },];
 
         attendance.isPaused = false;
-
-        attendance.currentWorkMode = inOffice ? "OFFICE" : "HOME";
-
+        attendance.currentWorkMode = currentMode;
         await attendance.save();
-
         await notificationService.sendToUser({
             userId,
             title: "Punch In Successful",
@@ -251,7 +208,6 @@ class AttendanceService {
             type: "ATTENDANCE",
             referenceId: attendance.id,
         });
-
         return {
             success: true,
             message: 'Punch In Successful',
@@ -370,9 +326,21 @@ class AttendanceService {
 
         const OFFICE_RADIUS = Number(process.env.OFFICE_RADIUS);
         attendance.status = shortage === 0 ? "present" : "present";
-        const distance = getDistance(OFFICE, { latitude, longitude, });
+        let inOffice = false;
 
-        const inOffice = distance <= OFFICE_RADIUS;
+        if (attendance.currentWorkMode === "OFFICE") {
+
+            const distance = getDistance(
+                OFFICE,
+                {
+                    latitude,
+                    longitude,
+                }
+            );
+
+            inOffice = distance <= OFFICE_RADIUS;
+
+        }
         const decodedLocation = await getLocationName(latitude, longitude);
 
         attendance.checkOutLatitude = latitude;
