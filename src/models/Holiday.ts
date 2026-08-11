@@ -3,7 +3,10 @@ import sequelize from '../config/database';
 import HolidayUser from "./HolidayUser";
 import { IHoliday, } from '../interfaces/holiday.interface';
 interface HolidayCreationAttributes
-  extends Optional<IHoliday, 'id'> { }
+  extends Optional<
+    IHoliday,
+    "id" | "holidayType" | "description" | "createdBy"
+  > { }
 
 class Holiday
   extends Model<

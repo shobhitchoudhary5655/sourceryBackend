@@ -23,6 +23,7 @@ export class HolidaySeeder {
           await Holiday.create({
             holidayName: holiday.holidayName,
             date: holiday.date,
+             holidayType: "PUBLIC",
           });
 
           console.log(`✅ ${holiday.holidayName} inserted`);
