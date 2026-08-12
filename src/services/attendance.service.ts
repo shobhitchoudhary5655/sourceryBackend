@@ -168,12 +168,6 @@ class AttendanceService {
         } else {
             const distance = getDistance(OFFICE, { latitude, longitude, });
             inOffice = distance <= OFFICE_RADIUS;
-            // if (!inOffice) {
-            //     return {
-            //         success: false,
-            //         message: "You are outside office location.",
-            //     };
-            // }
         }
 
         const decodedLocation = await getLocationName(latitude, longitude);
@@ -596,7 +590,6 @@ class AttendanceService {
     };
 
     public getOverallStatus = async (userId: number, month: number, year: number,) => {
-        // const attendance = await Attendance.findAll({ where: { userId } });
         const startDate = new Date(year, month - 1, 1);
 
         const endDate = new Date(year, month, 0);
@@ -613,12 +606,6 @@ class AttendanceService {
 
         let present = 0, absent = 0, leave = 0, wfh = 0;
 
-        // attendance.forEach((item : AttendanceItem) => {
-        //   if (item.status === 'present') present++;
-        //   if (item.status === 'absent') absent++;
-        //   if (item.status === 'leave') leave++;
-        //   if (item.status === 'wfh') wfh++;
-        // });
         attendance.forEach((item: any) => {
             switch (item.status) {
                 case 'present':

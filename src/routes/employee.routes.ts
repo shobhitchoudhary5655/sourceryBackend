@@ -124,20 +124,3 @@ class EmployeeRoutes {
 }
 
 export default new EmployeeRoutes().router;
-// const router = express.Router()
-
-// const {applyLeave} = require('../controllers/leaveController');
-// const authMiddleware = require('../middleware/authMiddleware');
-// const {getMyLeaves} = require('../controllers/leaveController')
-// const {punchIn,punchOut,getMyAttendance,getAttendance,getTodayStatus, getMyOverallAttendanceStatus} = require('../controllers/attendanceController');
-
-// router.post('/punch-in',authMiddleware,punchIn);
-// router.post('/punch-out',authMiddleware,punchOut);
-// router.get('/my-attendance',authMiddleware,getMyAttendance);
-// router.get('/',authMiddleware,getAttendance);
-// router.get('/today-status',authMiddleware,getTodayStatus);
-// router.get('/myOverall-status',authMiddleware,getMyOverallAttendanceStatus);
-// router.post('/applyLeave',authMiddleware,applyLeave)
-// router.get('/getMyLeaves',authMiddleware,getMyLeaves)
-
-// module.exports =  router;

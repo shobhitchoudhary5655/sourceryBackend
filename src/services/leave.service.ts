@@ -9,10 +9,6 @@ import notificationService from './notification.service';
 class LeaveService {
 
     public applyRequest = async (userId: number, data: ApplyRequestDTO) => {
-        // const dates = this.getDatesBetween(
-        //     data.startDate,
-        //     data.endDate
-        // );
         const requestGroupId = uuidv4();
         const employee = await User.findByPk(userId);
 

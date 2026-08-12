@@ -5,9 +5,7 @@ import { CreateHolidayDto } from '../dtos/holiday.dto';
 class HolidayService {
 
     public getHolidays = async () => {
-        // const holidays = await Holiday.findAll({
-        //     order: [['date', 'ASC']],
-        // });
+
         const holidays = await Holiday.findAll({
             include: [
                 {
@@ -30,7 +28,7 @@ class HolidayService {
     };
 
     public addHoliday = async (userId: number, data: CreateHolidayDto) => {
-        console.log(userId,data)
+
         // Only check duplicate PUBLIC holiday
         if (data.holidayType === "PUBLIC") {
 
@@ -55,7 +53,7 @@ class HolidayService {
             description: data.description,
             createdBy: userId,
         });
-console.log(holiday)
+
         // 3. Public holiday
         if (data.holidayType === "PUBLIC") {
             return {
@@ -89,9 +87,6 @@ console.log(holiday)
                 },
             ],
         });
-
-    console.log(alreadyAssigned);
-    
 
         if (alreadyAssigned.length > 0) {
 
