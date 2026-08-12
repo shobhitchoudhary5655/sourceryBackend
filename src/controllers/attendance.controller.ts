@@ -31,13 +31,10 @@ class AttendanceController {
       const result = await attendanceService.pauseAttendance(req.user!.id);
 
       if (!result.success) {
-        // return responseHandler.error(res, result.message);
         res.status(500).json({ success: false, message: result.message });
       }
-      // return responseHandler.success(res, result.message, result.attendance);
       res.status(200).json({ success: true, message: result.message });
     } catch (error: any) {
-      // return responseHandler.serverError(res, error);
       res.status(500).json({ success: false, message: error.message });
     }
 
@@ -49,13 +46,10 @@ class AttendanceController {
       const result = await attendanceService.resumeAttendance(req.user!.id, latitude, longitude);
 
       if (!result.success) {
-        // return responseHandler.error(res, result.message);
         res.status(500).json({ success: false, message: result.message });
       }
-      // return responseHandler.success(res, result.message, result.attendance);
       res.status(200).json({ success: true, message: result.message });
     } catch (error: any) {
-      // return responseHandler.serverError(res, error);
       res.status(500).json({ success: false, message: error.message });
     }
 

@@ -1,11 +1,12 @@
 import { Op } from 'sequelize';
 import { Attendance, User, Request, Holiday, Break, HolidayUser } from '../models';
-import { getTodayDate, formatDate } from '../utils/dateHelper';
+import { getTodayDate, formatDate, formatTime, } from '../utils/dateHelper';
 import { AttendanceItem, AttendanceStatus } from '../types/attendance.types';
 import { isWeeklyOff, getWeeklyOffDates, } from '../utils/weeklyOff.helper';
 import { getDistance } from 'geolib';
 import { getLocationName } from "../utils/locationHelper";
 import notificationService from './notification.service';
+import { calculateWorkSessionMinute } from '../utils/workSessionHelper';
 
 class AttendanceService {
 
@@ -168,20 +169,14 @@ class AttendanceService {
         } else {
             const distance = getDistance(OFFICE, { latitude, longitude, });
             inOffice = distance <= OFFICE_RADIUS;
-            // if (!inOffice) {
-            //     return {
-            //         success: false,
-            //         message: "You are outside office location.",
-            //     };
-            // }
         }
 
         const decodedLocation = await getLocationName(latitude, longitude);
-
+        const checkInTime = new Date();
         const attendance = await Attendance.create({
             userId,
             date: today,
-            checkIn: new Date(),
+            checkIn: checkInTime,
             status: currentMode === "HOME" ? "work-from-home" : "present",
             latitude,
             longitude,
@@ -204,7 +199,7 @@ class AttendanceService {
         await notificationService.sendToUser({
             userId,
             title: "Punch In Successful",
-            body: `You have successfully punched in at ${new Date().toLocaleTimeString()}.`,
+            body: `You have successfully punched in at ${formatTime(checkInTime)}.`,
             type: "ATTENDANCE",
             referenceId: attendance.id,
         });
@@ -286,7 +281,7 @@ class AttendanceService {
         attendance.workSessions = sessions;
 
         // Total office time (Punch In -> Punch Out)
-        const grossMinutes = Math.floor((now.getTime() - attendance.checkIn!.getTime()) / (1000 * 60));
+        const grossMinutes = calculateWorkSessionMinute(sessions);
 
         // Fetch today's breaks
         const breaks = await Break.findAll({
@@ -596,7 +591,6 @@ class AttendanceService {
     };
 
     public getOverallStatus = async (userId: number, month: number, year: number,) => {
-        // const attendance = await Attendance.findAll({ where: { userId } });
         const startDate = new Date(year, month - 1, 1);
 
         const endDate = new Date(year, month, 0);
@@ -613,12 +607,6 @@ class AttendanceService {
 
         let present = 0, absent = 0, leave = 0, wfh = 0;
 
-        // attendance.forEach((item : AttendanceItem) => {
-        //   if (item.status === 'present') present++;
-        //   if (item.status === 'absent') absent++;
-        //   if (item.status === 'leave') leave++;
-        //   if (item.status === 'wfh') wfh++;
-        // });
         attendance.forEach((item: any) => {
             switch (item.status) {
                 case 'present':

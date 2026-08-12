@@ -18,13 +18,3 @@ class AuthRoutes {
 }
 
 export default new AuthRoutes().router;
-
-// const express = require('express');
-
-// const router = express.Router();
-
-// const {login,} = require('../controllers/authController');
-
-// router.post('/login', login);
-
-// module.exports = router;

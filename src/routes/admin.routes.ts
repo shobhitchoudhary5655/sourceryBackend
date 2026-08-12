@@ -165,31 +165,3 @@ class AdminRoutes {
 }
 
 export default new AdminRoutes().router;
-
-// const express = require('express');
-// const router = express.Router();
-// const authMiddleware =require('../middleware/authMiddleware');
-// const {createEmployee,getEmployees,getEmployeeAttendance, getAttendanceStatus, getEmployeeDetails, editEmployeesDetails, deleteEmployee} = require('../controllers/adminController');
-// const {getDashboardStats,} = require('../controllers/dashboardController')
-// const {getAllLeaveRequest, acceptLeave, rejectLeave, updateLeaveStatus} = require('../controllers/leaveController')
-// const {getRoles} = require('../controllers/roleController')
-// const {getHolidays,addHoliday,deleteHoliday} = require('../controllers/holidayController')
-
-// router.post('/create-employee',authMiddleware,createEmployee);
-// router.get('/employees',authMiddleware,getEmployees);
-// router.get('/emplyoee/:emplyoeeId',authMiddleware,getEmployeeAttendance)
-// router.get('/getDashboardDetails',authMiddleware,getDashboardStats)
-// router.get('/getAllLeaveRequest',authMiddleware,getAllLeaveRequest)
-// router.get('/getRole',authMiddleware,getRoles)
-// router.patch('/:id/acceptLeave',authMiddleware,acceptLeave)
-// router.patch('/:id/rejectLeave',authMiddleware,rejectLeave)
-// router.patch('/:id/updateLeaveStatus/status',authMiddleware,updateLeaveStatus)
-// router.get('/getAttendanceStatus/:employeeId',authMiddleware,authMiddleware, getAttendanceStatus)
-// router.get('/getEmployeeDetails/:employeeId',authMiddleware,getEmployeeDetails)
-// router.put('/editEmployeeDetails/:id',authMiddleware,editEmployeesDetails)
-// router.delete('/deleteEmployee/:id',authMiddleware,deleteEmployee)
-// router.get('/getHolidays',authMiddleware,getHolidays)
-// router.post('/addHoliday',authMiddleware,addHoliday)
-// router.delete('/deleteHoliday/:id',authMiddleware,deleteHoliday)
-
-// module.exports = router;

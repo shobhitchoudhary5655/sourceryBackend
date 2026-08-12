@@ -18,18 +18,3 @@ class RoleController {
 }
 
 export default new RoleController();
-
-// const roleDAO = require('../daos/role.dao');
-
-// const getRoles = async (req,res) => {
-//     try {
-//         const roles = await roleDAO.getRoles()
-//         res.status(200).json({success:true, roles})
-//     } catch(error){
-//         res.status(500).json({success:false,message:error.message})
-//     }
-// }
-
-// module.exports = {
-//     getRoles,
-// }

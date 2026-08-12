@@ -18,7 +18,6 @@ class HolidayController {
 
   public addHoliday = async (req: AuthRequest, res: Response) => {
     try {
-      // const result = await holidayService.addHoliday(req.body);
       const result = await holidayService.addHoliday(req.user!.id, req.body);
       return res.status(201).json(result);
     } catch (error: any) {

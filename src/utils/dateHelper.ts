@@ -1,59 +1,3 @@
-// // export const formatDate = (
-// //   date: Date
-// // ): string => {
-// //   return new Intl.DateTimeFormat(
-// //     'en-CA',
-// //     {
-// //       timeZone: 'Asia/Kolkata',
-// //       year: 'numeric',
-// //       month: '2-digit',
-// //       day: '2-digit',
-// //     }
-// //   ).format(date);
-// // };
-
-// export const formatDate = (date: Date | string | null | undefined): string => {
-//   const parsedDate = new Date(date as any);
-
-//   if (isNaN(parsedDate.getTime())) {
-//     throw new Error(`Invalid date passed to formatDate: ${date}`);
-//   }
-
-//   return new Intl.DateTimeFormat('en-CA', {
-//     timeZone: 'Asia/Kolkata',
-//     year: 'numeric',
-//     month: '2-digit',
-//     day: '2-digit',
-//   }).format(parsedDate);
-// };
-
-// export const getTodayDate = (): string => {
-//   return formatDate(new Date());
-// };
-
-// // const formatDate = (date) => {
-// //   return new Intl.DateTimeFormat(
-// //     'en-CA',
-// //     {
-// //       timeZone: 'Asia/Kolkata',
-// //       year: 'numeric',
-// //       month: '2-digit',
-// //       day: '2-digit',
-// //     }
-// //   ).format(date);
-// // };
-
-// // const getTodayDate = () => {
-// //   return formatDate(new Date());
-// // };
-
-// // module.exports = {
-// //   formatDate,
-// //   getTodayDate,
-// // };
-
-
-
 export const formatDate = (
   value: Date | string | null | undefined
 ): string => {
@@ -120,4 +64,26 @@ export const createUTCDateFromIST = (
       minute - 30
     )
   );
+};
+
+export const formatTime = (
+  value: Date | string | null | undefined
+): string => {
+  if (!value) {
+    throw new Error(`Invalid date passed to formatTime: ${value}`);
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    throw new Error(`Invalid date passed to formatTime: ${value}`);
+  }
+
+  return new Intl.DateTimeFormat("en-IN", {
+    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  }).format(date);
 };
