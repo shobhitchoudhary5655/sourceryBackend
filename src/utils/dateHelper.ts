@@ -65,3 +65,25 @@ export const createUTCDateFromIST = (
     )
   );
 };
+
+export const formatTime = (
+  value: Date | string | null | undefined
+): string => {
+  if (!value) {
+    throw new Error(`Invalid date passed to formatTime: ${value}`);
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    throw new Error(`Invalid date passed to formatTime: ${value}`);
+  }
+
+  return new Intl.DateTimeFormat("en-IN", {
+    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  }).format(date);
+};

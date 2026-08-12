@@ -41,3 +41,23 @@ export const calculateAttendanceMetrics = (attendance: Attendance, extraBreakMin
         payableMinutes,
     };
 };
+
+
+export const calculateWorkSessionMinute = (
+    sessions: any[]
+): number => {
+    let total = 0;
+
+    for (const session of sessions) {
+        if (!session.startTime || !session.endTime) {
+            continue;
+        }
+
+        const start = new Date(session.startTime).getTime();
+        const end = new Date(session.endTime).getTime();
+
+        total += Math.floor((end - start) / (1000 * 60));
+    }
+
+    return total;
+};
