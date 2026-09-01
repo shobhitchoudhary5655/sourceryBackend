@@ -14,7 +14,7 @@ export class GraceBalanceResetCron {
         try {
             console.log('Running Grace Balance Reset Cron');
             const [updatedCount] = await User.update(
-                { graceBalance: 240, },
+                { graceBalance: 360, },
                 { where: {}, }
             );
             console.log(`✅ Grace Balance Reset Completed (${updatedCount} users updated)`);
