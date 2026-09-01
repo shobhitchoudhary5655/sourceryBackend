@@ -41,17 +41,13 @@ class SalaryService {
         const employees = await User.findAll({
             where: { roleId: { [Op.ne]: 1, }, },
         });
-
         const monthStart = new Date(year, month - 1, 1);
         const monthEnd = new Date(year, month, 0);
         const workingDays = getWorkingDays(month, year);
+        const MONTHLY_BUFFER_MINUTES = Number(process.env.MONTHLY_BUFFER_MINUTES || 360);
 
         for (const employee of employees) {
-            const alreadyExists = await salaryDAO.findSalary(
-                employee.id,
-                month,
-                year
-            );
+            const alreadyExists = await salaryDAO.findSalary(employee.id, month, year);
 
             if (alreadyExists) {
                 skipped++;
@@ -65,18 +61,13 @@ class SalaryService {
 
             const baseSalary = Number(employee.salary);
             const perDaySalary = baseSalary / workingDays;
-
             const leaveRequests = await Request.findAll({
                 where: {
                     userId: employee.id,
                     requestType: "leave",
                     status: "approved",
-                    startDate: {
-                        [Op.lte]: formatDate(monthEnd),
-                    },
-                    endDate: {
-                        [Op.gte]: formatDate(monthStart),
-                    },
+                    startDate: { [Op.lte]: formatDate(monthEnd), },
+                    endDate: { [Op.gte]: formatDate(monthStart), },
                 },
             });
 
@@ -84,16 +75,9 @@ class SalaryService {
             let paidLeaveDays = 0;
 
             for (const leave of leaveRequests) {
-
-                const totalLeaveDays = this.getTotalLeaveDays(
-                    leave.startDate,
-                    leave.endDate
-                );
-
+                const totalLeaveDays = this.getTotalLeaveDays(leave.startDate, leave.endDate);
                 const lopDays = Number(leave.lopDays || 0);
-
                 totalLopDays += lopDays;
-
                 paidLeaveDays += totalLeaveDays - lopDays;
             }
 
@@ -121,136 +105,102 @@ class SalaryService {
                     },
                 },
             });
+
             let totalWorkedMinutes = 0;
+            let totalHolidays = 0;
+
+            // Count month holidays for this employee
+            const monthHolidays = await Holiday.findAll({
+                where: {
+                    date: {
+                        [Op.between]: [formatDate(monthStart), formatDate(monthEnd)],
+                    },
+                },
+            });
+
+            for (const h of monthHolidays) {
+                if (h.holidayType === 'PUBLIC') {
+                    totalHolidays++;
+                    continue;
+                }
+                const mapping = await HolidayUser.findOne({ where: { holidayId: h.id, userId: employee.id } });
+                if (mapping) totalHolidays++;
+            }
 
             for (const attendance of attendances) {
-
-                const holiday = await Holiday.findOne({
-                    where: {
-                        date: attendance.date,
-                    },
-                });
+                const holiday = await Holiday.findOne({ where: { date: attendance.date } });
 
                 let isAssignedHoliday = false;
                 let isAssignedWFH = false;
 
                 if (holiday) {
-
-                    if (holiday.holidayType === "PUBLIC") {
-
+                    if (holiday.holidayType === 'PUBLIC') {
                         isAssignedHoliday = true;
-
                     } else {
-
-                        const mapping = await HolidayUser.findOne({
-                            where: {
-                                holidayId: holiday.id,
-                                userId: employee.id,
-                            },
-                        });
-
+                        const mapping = await HolidayUser.findOne({ where: { holidayId: holiday.id, userId: employee.id } });
                         if (mapping) {
-
-                            if (holiday.holidayType === "SPECIAL_HOLIDAY") {
-                                isAssignedHoliday = true;
-                            }
-
-                            if (holiday.holidayType === "SPECIAL_WFH") {
-                                isAssignedWFH = true;
-                            }
+                            if (holiday.holidayType === 'SPECIAL_HOLIDAY') isAssignedHoliday = true;
+                            if (holiday.holidayType === 'SPECIAL_WFH') isAssignedWFH = true;
                         }
                     }
                 }
 
-                if (
-                    isAssignedHoliday ||
-                    isAssignedWFH
-                ) {
-
+                if (isAssignedHoliday) {
                     totalWorkedMinutes += 480;
                     continue;
                 }
 
-                if (attendance.status === "leave") {
-
+                if (isAssignedWFH) {
                     totalWorkedMinutes += 480;
                     continue;
                 }
 
-                if (
-                    attendance.status !== "present" &&
-                    attendance.status !== "halfday"
-                ) {
+                if (attendance.status === 'leave') {
+                    totalWorkedMinutes += 480;
                     continue;
                 }
 
+                if (attendance.status !== 'present' && attendance.status !== 'halfday') continue;
+
+                // Prefer `workingHours` column from Attendance if available; fall back to officeHours or workSessions
+                const workingHoursNum = Number(attendance.workingHours ?? attendance.officeHours ?? 0);
                 let workedMinutes = 0;
 
-                if (
-                    attendance.workSessions &&
-                    attendance.workSessions.length > 0
-                ) {
-
-                    workedMinutes =
-                        calculateWorkSessionMinutes(
-                            attendance.workSessions
-                        );
-
+                if (workingHoursNum && workingHoursNum > 0) {
+                    workedMinutes = Math.round(workingHoursNum * 60);
+                } else if (attendance.workSessions && attendance.workSessions.length > 0) {
+                    workedMinutes = calculateWorkSessionMinutes(attendance.workSessions);
                 } else {
-
-                    workedMinutes =
-                        Math.round(
-                            Number(attendance.officeHours || 0) * 60
-                        );
+                    workedMinutes = attendance.status === 'halfday' ? 4 * 60 : 8 * 60;
                 }
 
-                const breaks = await Break.findAll({
-                    where: {
-                        attendanceId: attendance.id,
-                    },
-                });
-
-                const totalBreakMinutes = breaks.reduce(
-                    (sum, item) => sum + Number(item.durationMinutes || 0),
-                    0
-                );
-
-                const FREE_LUNCH_MINUTES =
-                    Number(process.env.FREE_LUNCH_MINUTES || 30);
-
-                const extraBreakMinutes =
-                    Math.max(
-                        0,
-                        totalBreakMinutes - FREE_LUNCH_MINUTES
-                    );
+                const breaks = await Break.findAll({ where: { attendanceId: attendance.id } });
+                const totalBreakMinutes = breaks.reduce((sum, item) => sum + Number(item.durationMinutes || 0), 0);
+                const FREE_LUNCH_MINUTES = Number(process.env.FREE_LUNCH_MINUTES || 30);
+                const extraBreakMinutes = Math.max(0, totalBreakMinutes - FREE_LUNCH_MINUTES);
 
                 workedMinutes -= extraBreakMinutes;
-
-                if (workedMinutes < 0) {
-                    workedMinutes = 0;
-                }
+                if (workedMinutes < 0) workedMinutes = 0;
 
                 totalWorkedMinutes += workedMinutes;
             }
+
             const expectedWorkingDays = workingDays - paidLeaveDays;
+            // Daily required minutes: default 7.5 hours (450 minutes)
+            const DAILY_REQUIRED_MINUTES = Number(process.env.DAILY_REQUIRED_MINUTES || 450);
 
-            const requiredMinutes = Math.max(0, expectedWorkingDays) * 8 * 60;
-            let shortageMinutes =
-                requiredMinutes - totalWorkedMinutes;
-
+            const requiredMinutes = Math.max(0, expectedWorkingDays) * DAILY_REQUIRED_MINUTES;
+            // Apply monthly buffer
+            let shortageMinutes = requiredMinutes - totalWorkedMinutes - MONTHLY_BUFFER_MINUTES;
             const graceMinutes = Number(employee.graceBalance || 0);
-            if (shortageMinutes < 0) {
-                shortageMinutes = 0;
-            }
-
-            const perMinuteSalary = baseSalary / (workingDays * 8 * 60);
+            if (shortageMinutes < 0) shortageMinutes = 0;
+            const perMinuteSalary = baseSalary / (workingDays * DAILY_REQUIRED_MINUTES);
             let wfhDeductionDays = 0;
             let hasPendingWFH = false;
 
             for (const attendance of attendances) {
 
-                if (attendance.status !== "present" && attendance.status !== "halfday"
-                ) {
+                if (attendance.status !== "present" && attendance.status !== "halfday") {
                     continue;
                 }
 
@@ -265,7 +215,6 @@ class SalaryService {
                 const holiday = await Holiday.findOne({
                     where: { date: attendance.date, },
                 });
-
                 if (holiday) {
 
                     if (holiday.holidayType === "PUBLIC") {
@@ -304,9 +253,9 @@ class SalaryService {
                     },
                 });
 
-                // No WFH request
+                // No WFH request or no approved request => half-day deduction
                 if (requests.length === 0) {
-                    wfhDeductionDays += 1;
+                    wfhDeductionDays += 0.5;
                     continue;
                 }
 

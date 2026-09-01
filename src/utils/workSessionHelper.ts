@@ -18,7 +18,7 @@ export const calculateWorkSessionMinutes = (sessions: IWorkSession[]): number =>
         const end = new Date(session.endTime).getTime();
 
         const minutes = Math.floor((end - start) / (1000 * 60));
-
+console.log(`Session from ${session.startTime} to ${session.endTime} is ${minutes} minutes.`);
         return total + minutes;
 
     }, 0);
