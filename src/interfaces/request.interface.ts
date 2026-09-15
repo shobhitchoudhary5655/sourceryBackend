@@ -4,7 +4,8 @@ export interface IRequest {
     requestGroupId: string;
     requestType:
     | 'leave'
-    | 'wfh';
+    | 'wfh'
+    | "grace_balance";
     leaveType?:
     | 'Casual'
     | 'Sick'
@@ -23,6 +24,8 @@ export interface IRequest {
     approvedAt?: Date;
     rejectionReason?: string;
     lopDays?: number;
+    attendanceId?: number;
+    extraMinutes?: number;
     createdAt?: Date;
     updatedAt?: Date;
 }

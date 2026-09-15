@@ -120,6 +120,12 @@ class EmployeeRoutes {
       authMiddleware.verifyToken,
       AttendanceController.getBreakStatus
     );
+
+    this.router.post(
+      "/requests/grace-balance",
+      authMiddleware.verifyToken,
+      LeaveController.createGraceRequest
+    )
   }
 }
 

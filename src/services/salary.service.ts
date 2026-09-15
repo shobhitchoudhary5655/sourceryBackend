@@ -161,27 +161,9 @@ class SalaryService {
                 }
 
                 if (attendance.status !== 'present' && attendance.status !== 'halfday') continue;
-
-                // Prefer `workingHours` column from Attendance if available; fall back to officeHours or workSessions
-                const workingHoursNum = Number(attendance.workingHours ?? attendance.officeHours ?? 0);
                 let workedMinutes = 0;
-
-                if (workingHoursNum && workingHoursNum > 0) {
-                    workedMinutes = Math.round(workingHoursNum * 60);
-                } else if (attendance.workSessions && attendance.workSessions.length > 0) {
-                    workedMinutes = calculateWorkSessionMinutes(attendance.workSessions);
-                } else {
-                    workedMinutes = attendance.status === 'halfday' ? 4 * 60 : 8 * 60;
-                }
-
-                const breaks = await Break.findAll({ where: { attendanceId: attendance.id } });
-                const totalBreakMinutes = breaks.reduce((sum, item) => sum + Number(item.durationMinutes || 0), 0);
-                const FREE_LUNCH_MINUTES = Number(process.env.FREE_LUNCH_MINUTES || 30);
-                const extraBreakMinutes = Math.max(0, totalBreakMinutes - FREE_LUNCH_MINUTES);
-
-                workedMinutes -= extraBreakMinutes;
-                if (workedMinutes < 0) workedMinutes = 0;
-
+                const effectiveHoursNum = Number(attendance.effectiveHours ?? attendance.workingHours ?? attendance.officeHours ?? 0);
+                workedMinutes = Math.round(effectiveHoursNum * 60);
                 totalWorkedMinutes += workedMinutes;
             }
 
