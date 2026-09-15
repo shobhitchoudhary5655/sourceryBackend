@@ -26,7 +26,8 @@ class Request
     declare requestGroupId: string;
     declare requestType:
         | 'leave'
-        | 'wfh';
+        | 'wfh'
+        | 'grace_balance';
     declare leaveType?:
         | 'Casual'
         | 'Sick'
@@ -45,6 +46,8 @@ class Request
     declare approvedAt?: Date;
     declare rejectionReason?: string;
     declare lopDays?: number;
+    declare attendanceId?: number;
+    declare extraMinutes?: number;
     declare readonly createdAt: Date;
     declare readonly updatedAt: Date;
 }
@@ -69,7 +72,8 @@ Request.init(
         requestType: {
             type: DataTypes.ENUM(
                 'leave',
-                'wfh'
+                'wfh',
+                'grace_balance',
             ),
             allowNull: false,
         },
@@ -129,6 +133,16 @@ Request.init(
             type: DataTypes.DECIMAL(4, 1),
             allowNull: false,
             defaultValue: 0,
+        },
+
+        attendanceId: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+        },
+
+        extraMinutes: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
         },
     },
     {

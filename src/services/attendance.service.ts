@@ -307,10 +307,12 @@ class AttendanceService {
 
         const effectiveMinutes = grossMinutes - extraBreakMinutes;
 
+        const extraMinutes = Math.max(0, effectiveMinutes - REQUIRED_MINUTES);
+        const finalMinutes = Math.min(effectiveMinutes, REQUIRED_MINUTES);
         attendance.checkOut = now;
         attendance.officeHours = Number((grossMinutes / 60).toFixed(2));
         attendance.workingHours = Number((workingMinutes / 60).toFixed(2));
-        attendance.effectiveHours = Number((effectiveMinutes / 60).toFixed(2));
+        attendance.effectiveHours = Number((finalMinutes / 60).toFixed(2));
         attendance.breakMinutes = totalBreakMinutes;
         const shortage = Math.max(0, REQUIRED_MINUTES - effectiveMinutes);
 
@@ -353,7 +355,9 @@ class AttendanceService {
         return {
             success: true,
             message: "Punch Out Successful",
-            attendance,
+            attendanceId: attendance.id,
+            showGracePopup: extraMinutes > 0,
+            extraMinutes,
             graceBalance: user.graceBalance,
         };
     };

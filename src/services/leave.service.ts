@@ -276,11 +276,33 @@ class LeaveService {
             request.status = 'rejected';
             await request.save();
 
+            let title = "";
+            let body = "";
+            let type = "";
+
+            if (request.requestType === "leave") {
+                title = "Leave Request Rejected";
+                body = `Your ${request.leaveType ?? ""} leave request has been rejected.`;
+                type = "LEAVE";
+            }
+
+            if (request.requestType === "wfh") {
+                title = "WFH Request Rejected";
+                body = "Your Work From Home request has been rejected.";
+                type = "WFH";
+            }
+
+            if (request.requestType === "grace_balance") {
+                title = "Grace Balance Rejected";
+                body = "Your Grace Balance request has been rejected.";
+                type = "GRACE_BALANCE";
+            }
+
             await notificationService.sendToUser({
                 userId: request.userId,
-                title: "Leave Request Rejected",
-                body: `Your ${request.leaveType ?? ""} leave request has been rejected.`,
-                type: "LEAVE",
+                title,
+                body,
+                type,
                 referenceId: request.id,
                 data: {
                     requestId: String(request.id),
@@ -317,6 +339,37 @@ class LeaveService {
             return {
                 success: true,
                 message: 'WFH approved successfully',
+                request,
+            };
+        }
+
+        // Grace Balance Request
+        if (request.requestType === "grace_balance") {
+            const user = await User.findByPk(request.userId);
+            if (!user) {
+                return { success: false, message: "User not found", };
+            }
+            user.graceBalance += Number(request.extraMinutes || 0);
+            await user.save();
+            request.status = "approved";
+            // request.approvedBy = data.approvedBy;
+            request.approvedAt = new Date();
+            await request.save();
+            await notificationService.sendToUser({
+                userId: request.userId,
+                title: "Grace Balance Approved",
+                body: `${request.extraMinutes} minute(s) have been added to your Grace Balance.`,
+                type: "GRACE_BALANCE",
+                referenceId: request.id,
+                data: {
+                    requestId: String(request.id),
+                    status: "approved",
+                },
+            });
+
+            return {
+                success: true,
+                message: "Grace Balance approved successfully",
                 request,
             };
         }
@@ -509,6 +562,37 @@ class LeaveService {
             message: "Request cancelled successfully.",
         };
     };
+
+    public createGraceRequest = async (userId: number, body: any,) => {
+        const attendance = await Attendance.findByPk(body.attendanceId,);
+        if (!attendance) {
+            throw new Error("Attendance not found");
+        }
+        const existing = await Request.findOne({
+            where: {
+                attendanceId: body.attendanceId,
+                requestType: "grace_balance",
+            }
+        });
+
+        if (existing) {
+            throw new Error("Request already submitted.");
+        }
+        await Request.create({
+            userId,
+            requestGroupId: uuidv4(),
+            requestType: "grace_balance",
+            attendanceId: body.attendanceId,
+            extraMinutes: body.extraMinutes,
+            startDate: attendance.date,
+            endDate: attendance.date,
+            reason: "Extra working time",
+        });
+        return {
+            success: true,
+            message: "Request Created Successfully",
+        }
+    }
 }
 
 export default new LeaveService();
