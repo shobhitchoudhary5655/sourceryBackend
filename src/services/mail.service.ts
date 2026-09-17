@@ -24,12 +24,20 @@ class MailService {
     }
 
     public async sendEmail(to: string, subject: string, html: string): Promise<void> {
-        await this.transporter.sendMail({
-            from: `"${process.env.BREVO_SENDER_NAME}" <${process.env.BREVO_SENDER_EMAIL}>`,
-            to,
-            subject,
-            html,
-        });
+        try {
+            await this.transporter.verify();
+            console.log("SMTP Connected Successfully");
+            const info = await this.transporter.sendMail({
+                from: `"${process.env.BREVO_SENDER_NAME}" <${process.env.BREVO_SENDER_EMAIL}>`,
+                to,
+                subject,
+                html,
+            });
+            console.log("Mail Sent:", info);
+        } catch (error) {
+            console.error("SMTP ERROR =>", error);
+            throw error;
+        }
     }
 
     public async sendForgotPasswordEmail(email: string, name: string, resetLink: string): Promise<void> {
