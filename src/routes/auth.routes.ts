@@ -10,10 +10,9 @@ class AuthRoutes {
   }
 
   private initializeRoutes(): void {
-    this.router.post(
-      '/login',
-      AuthController.login
-    );
+    this.router.post('/login', AuthController.login);
+    this.router.post("/forgot-password", AuthController.forgotPassword);
+    this.router.post("/reset-password", AuthController.resetPassword);
   }
 }
 
