@@ -6,6 +6,7 @@ import hrRoutes from './hr.routes';
 import employeeRoutes from './employee.routes';
 import uploadRoutes from './upload.routes';
 import notificationRoutes from './notification.routes';
+import testRoutes from "./test.routes";
 
 export class AppRoutes {
   public router: Router;
@@ -20,8 +21,9 @@ export class AppRoutes {
     this.router.use('/admin', adminRoutes);
     this.router.use('/hr', hrRoutes);
     this.router.use('/employee', employeeRoutes);
-    this.router.use('/upload',uploadRoutes)
-    this.router.use('/notification',notificationRoutes)
+    this.router.use('/upload', uploadRoutes)
+    this.router.use('/notification', notificationRoutes)
+    this.router.use("/test", testRoutes);
   }
 }
 

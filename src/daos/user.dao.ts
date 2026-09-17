@@ -107,7 +107,7 @@ class UserDao {
       ],
       limit: limitNum,
       offset,
-      order: [['createdAt', 'DESC']],
+      order: [['name', 'ASC']],
     });
 
     return {
