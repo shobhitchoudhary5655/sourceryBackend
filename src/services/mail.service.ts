@@ -1,41 +1,73 @@
-import nodemailer from "nodemailer";
+// import nodemailer from "nodemailer";
+import axios from "axios";
 
 class MailService {
 
-    private transporter;
+    // private transporter;
+    // constructor() {
+    //     this.transporter = nodemailer.createTransport({
+    //         host: process.env.SMTP_HOST,
+    //         port: Number(process.env.SMTP_PORT),
+    //         // secure: false,
+    //         secure: true,
+    //         auth: {
+    //             user: process.env.SMTP_USER,
+    //             pass: process.env.SMTP_PASS,
+    //         },
+    //     });
+    //     console.log({
+    //         SMTP_HOST: process.env.SMTP_HOST,
+    //         SMTP_PORT: process.env.SMTP_PORT,
+    //         SMTP_USER: process.env.SMTP_USER,
+    //         BREVO_SENDER_EMAIL: process.env.BREVO_SENDER_EMAIL,
+    //     });
+    // }
 
-    constructor() {
-        this.transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST,
-            port: Number(process.env.SMTP_PORT),
-            // secure: false,
-            secure: true,
-            auth: {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS,
-            },
-        });
-        console.log({
-            SMTP_HOST: process.env.SMTP_HOST,
-            SMTP_PORT: process.env.SMTP_PORT,
-            SMTP_USER: process.env.SMTP_USER,
-            BREVO_SENDER_EMAIL: process.env.BREVO_SENDER_EMAIL,
-        });
-    }
+    // public async sendEmail(to: string, subject: string, html: string): Promise<void> {
+    //     try {
+    //         await this.transporter.verify();
+    //         console.log("SMTP Connected Successfully");
+    //         const info = await this.transporter.sendMail({
+    //             from: `"${process.env.BREVO_SENDER_NAME}" <${process.env.BREVO_SENDER_EMAIL}>`,
+    //             to,
+    //             subject,
+    //             html,
+    //         });
+    //         console.log("Mail Sent:", info);
+    //     } catch (error) {
+    //         console.error("SMTP ERROR =>", error);
+    //         throw error;
+    //     }
+    // }
 
     public async sendEmail(to: string, subject: string, html: string): Promise<void> {
         try {
-            await this.transporter.verify();
-            console.log("SMTP Connected Successfully");
-            const info = await this.transporter.sendMail({
-                from: `"${process.env.BREVO_SENDER_NAME}" <${process.env.BREVO_SENDER_EMAIL}>`,
-                to,
-                subject,
-                html,
-            });
-            console.log("Mail Sent:", info);
-        } catch (error) {
-            console.error("SMTP ERROR =>", error);
+            const response = await axios.post(
+                "https://api.brevo.com/v3/smtp/email",
+                {
+                    sender: {
+                        name: process.env.BREVO_SENDER_NAME,
+                        email: process.env.BREVO_SENDER_EMAIL,
+                    },
+                    to: [
+                        {
+                            email: to,
+                        },
+                    ],
+                    subject,
+                    htmlContent: html,
+                },
+                {
+                    headers: {
+                        accept: "application/json",
+                        "content-type": "application/json",
+                        "api-key": process.env.BREVO_API_KEY!,
+                    },
+                }
+            );
+            console.log("Email Sent:", response.data);
+        } catch (error: any) {
+            console.log("Brevo Error:", error.response?.data || error.message);
             throw error;
         }
     }
