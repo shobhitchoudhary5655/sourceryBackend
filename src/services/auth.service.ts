@@ -28,6 +28,10 @@ class AuthService {
       return { success: false, message: 'Invalid Email', };
     }
 
+    if (user.status != 'Active') {
+      return { success: false, message: 'You are not active user, so contact to the administrator' }
+    }
+
     if (platform === "web" && user.role.id !== 1) {
       return { success: false, message: "Only administrators can log in to the web portal." };
     }
@@ -68,6 +72,7 @@ class AuthService {
         name: user.name,
         email: user.email,
         role: user.role.name,
+        status: user.status,
       },
     };
   };
