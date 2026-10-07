@@ -223,15 +223,9 @@ class SalaryService {
                     where: {
                         userId: employee.id,
                         requestType: "wfh",
-                        startDate: {
-                            [Op.lte]: attendance.date,
-                        },
-                        endDate: {
-                            [Op.gte]: attendance.date,
-                        },
-                        status: {
-                            [Op.ne]: "cancelled",
-                        },
+                        startDate: { [Op.lte]: attendance.date, },
+                        endDate: { [Op.gte]: attendance.date, },
+                        status: { [Op.ne]: "cancelled", },
                     },
                 });
 

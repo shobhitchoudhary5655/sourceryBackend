@@ -17,6 +17,7 @@ export interface IUser {
   status: "Active" | "Inactive";
   clBalance?: number | null;
   slBalance?: number | null;
-  graceBalance: number ;
+  graceBalance: number;
   fcmTokens?: string[];
+  googleId?: string;
 }

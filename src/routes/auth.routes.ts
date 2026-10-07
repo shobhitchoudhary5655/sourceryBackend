@@ -13,6 +13,7 @@ class AuthRoutes {
     this.router.post('/login', AuthController.login);
     this.router.post("/forgot-password", AuthController.forgotPassword);
     this.router.post("/reset-password", AuthController.resetPassword);
+    this.router.post("/google-login", AuthController.googleLogin);
   }
 }
 
