@@ -21,6 +21,7 @@ export interface UserCreationAttributes
     | 'slBalance'
     | 'graceBalance'
     | 'fcmTokens'
+    | "googleId"
   > { }
 
 class User
@@ -74,6 +75,8 @@ class User
   declare graceBalance: number;
 
   declare fcmTokens?: string[];
+
+  declare googleId?: string;
 
   declare readonly createdAt: Date;
 
@@ -197,6 +200,12 @@ User.init(
       type: DataTypes.JSON,
       allowNull: false,
       defaultValue: [],
+    },
+
+    googleId: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      unique: true,
     },
   },
   {

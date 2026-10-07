@@ -1,12 +1,15 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { User, Role } from '../models';
-import { LoginDTO } from '../dtos/auth.dto';
+import { LoginDTO, GoogleLoginDTO } from '../dtos/auth.dto';
 import { UserWithRole } from '../types/user.type';
 import { v4 as uuid } from "uuid";
 import redis from "../config/redis";
 import mailService from "./mail.service";
 import { ResetPasswordDTO } from "../dtos/auth.dto";
+import { OAuth2Client } from "google-auth-library";
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 class AuthService {
 
@@ -128,6 +131,115 @@ class AuthService {
       message: "Password reset successfully.",
     };
   }
+
+  public googleLogin = async (data: GoogleLoginDTO) => {
+    const { token, fcmToken, platform } = data;
+
+    // Verify Google ID Token
+    const ticket = await googleClient.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+
+    if (!payload) {
+      return {
+        success: false,
+        message: "Invalid Google token.",
+      };
+    }
+
+    if (!payload.email_verified) {
+      return {
+        success: false,
+        message: "Google email is not verified.",
+      };
+    }
+
+    const email = payload.email!;
+
+    // Find existing user
+    const user = await User.findOne({
+      where: { email },
+      include: [
+        {
+          model: Role,
+          as: "role",
+          attributes: ["id", "name"],
+        },
+      ],
+    }) as unknown as UserWithRole;
+
+    if (!user) {
+      return {
+        success: false,
+        message: "Your account has not been created. Please contact the administrator.",
+      };
+    }
+
+    // User status check
+    if (user.status !== "Active") {
+      return {
+        success: false,
+        message:
+          "You are not an active user. Please contact the administrator.",
+      };
+    }
+
+    // Allow only admins on web
+    if (platform === "web" && user.role.id !== 1) {
+      return {
+        success: false,
+        message: "Only administrators can log in to the web portal.",
+      };
+    }
+
+    // Save FCM Token
+    if (fcmToken) {
+      const tokens = user.fcmTokens || [];
+
+      if (!tokens.includes(fcmToken)) {
+        tokens.push(fcmToken);
+
+        await User.update(
+          {
+            fcmTokens: tokens,
+          },
+          {
+            where: {
+              id: user.id,
+            },
+          }
+        );
+      }
+    }
+
+    // Generate JWT
+    const jwtToken = jwt.sign(
+      {
+        id: user.id,
+        role: user.role.name,
+      },
+      process.env.JWT_SECRET as string,
+      {
+        expiresIn: "7d",
+      }
+    );
+
+    return {
+      success: true,
+      token: jwtToken,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role.name,
+        status: user.status,
+      },
+    };
+  };
+
 }
 
 export default new AuthService();

@@ -46,6 +46,15 @@ class AuthController {
 
   };
 
+  public googleLogin = async (req: Request, res: Response) => {
+    try {
+      const response = await authService.googleLogin(req.body);
+      return res.status(200).json(response);
+    } catch (error) {
+      return res.status(500).json({ success: false, message: "Internal Server Error", });
+    }
+  };
+
 }
 
 export default new AuthController();
